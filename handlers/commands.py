@@ -5,8 +5,8 @@ from database import db_admins
 from keyboards import inline
 
 
-async def bot_start(msg: types.Message):
-    await msg.delete()
+async def bot_start(msg: types.Message, state: FSMContext):
+    await state.finish()
     name = msg.from_user.first_name
     tg_id = msg.from_user.id
     user_status = await db_admins.check_status(tg_id)
