@@ -12,11 +12,10 @@ async def main():
         format=u'[%(asctime)s] - %(message)s')
     settings.logger.info("Starting bot")
 
-    bot = Bot(settings.bot_token, parse_mode="HTML")
+    bot = Bot(settings.bot_token, parse_mode="html")
     storage = MemoryStorage()
     dp = Dispatcher(bot, storage=storage)
     settings.register_handlers(dp)
-
     await settings.set_default_commands(dp)
     await dp.start_polling()
 
