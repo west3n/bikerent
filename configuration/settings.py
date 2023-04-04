@@ -5,6 +5,7 @@ from aiogram import types
 from decouple import config
 from handlers.commands import register as reg_handlers
 from handlers.superuser import register as reg_superuser
+from handlers.bike import register as reg_bike
 
 
 bot_token = config("BOT_TOKEN")
@@ -20,3 +21,4 @@ async def set_default_commands(dp):
 def register_handlers(dp: Dispatcher):
     reg_handlers(dp)
     reg_superuser(dp)
+    reg_bike(dp)
