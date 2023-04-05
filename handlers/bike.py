@@ -10,6 +10,7 @@ from database.db_bike import create_new_bike, delete_bike, get_photo, db_update_
 class NewBike(StatesGroup):
     brand = State()
     model = State()
+    year = State()
     purchase_price = State()
     millage = State()
     abs_cbs = State()
@@ -17,7 +18,9 @@ class NewBike(StatesGroup):
     plate_no = State()
     color = State()
     gps = State()
+    style = State()
     docs = State()
+    exhaust = State()
     photo = State()
     status = State()
     another_one = State()
@@ -60,8 +63,19 @@ async def add_new_bike_step2(msg: types.Message, state: FSMContext):
 async def add_new_bike_step3(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['model'] = msg.text
-    await msg.answer("Input bike purchase price:")
+    await msg.answer("Input bike year:")
     await NewBike.next()
+
+
+async def add_new_bike_step3_v1(msg: types.Message, state: FSMContext):
+    if msg.text.isdigit():
+        async with state.proxy() as data:
+            data['year'] = msg.text
+        await msg.answer("Input bike purchase price:")
+        await NewBike.next()
+    else: 
+        await msg.delete()
+        await msg.answer("Use digits only!")
 
 
 async def add_new_bike_step4(msg: types.Message, state: FSMContext):
@@ -122,6 +136,13 @@ async def add_new_bike_step9(call: types.CallbackQuery, state: FSMContext):
 async def add_new_bike_step10(call: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['gps'] = call.data
+    await call.message.edit_text("Select bike style", reply_markup=inline.kb_bike_style())
+    await NewBike.next()
+
+
+async def add_new_bike_step10_v1(call: types.CallbackQuery, state: FSMContext):
+    async with state.proxy() as data:
+        data['style'] = call.data
     await call.message.edit_text("Bike has documents?", reply_markup=inline.kb_yesno())
     await NewBike.next()
 
@@ -129,6 +150,14 @@ async def add_new_bike_step10(call: types.CallbackQuery, state: FSMContext):
 async def add_new_bike_step11(call: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['docs'] = call.data
+    await call.message.edit_text("Select type exhaust:", reply_markup=inline.kb_bike_style())
+    await NewBike.next()
+
+
+async def add_new_bike_step11_2(call: types.CallbackQuery, state: FSMContext):
+    print(call.data)
+    async with state.proxy() as data:
+        data['exhaust'] = call.data
     await call.message.edit_text("Send one image of bike")
     await NewBike.next()
 
@@ -236,6 +265,8 @@ async def update_bike_step3(call: types.CallbackQuery, state: FSMContext):
             await call.message.edit_text("Select new parameter:", reply_markup=inline.kb_basic_custom())
         elif call.data == 'status':
             await call.message.edit_text("Select new parameter:", reply_markup=inline.kb_bike_status())
+        elif call.data in ['style', 'exhaust']:
+            await call.message.edit_text("Select new parameter:", reply_markup=inline.kb_bike_style())
         elif call.data == 'photo':
             photo = await get_photo(data.get('bike_id'))
             photo_io = io.BytesIO(photo[0])
@@ -298,6 +329,7 @@ def register(dp: Dispatcher):
     dp.register_callback_query_handler(add_new_bike_step1, text='add_new_bike')
     dp.register_message_handler(add_new_bike_step2, state=NewBike.brand)
     dp.register_message_handler(add_new_bike_step3, state=NewBike.model)
+    dp.register_message_handler(add_new_bike_step3_v1, state=NewBike.year)
     dp.register_message_handler(add_new_bike_step4, state=NewBike.purchase_price)
     dp.register_message_handler(add_new_bike_step5, state=NewBike.millage)
     dp.register_callback_query_handler(add_new_bike_step6, state=NewBike.abs_cbs)
@@ -305,7 +337,9 @@ def register(dp: Dispatcher):
     dp.register_message_handler(add_new_bike_step8, state=NewBike.plate_no)
     dp.register_callback_query_handler(add_new_bike_step9, state=NewBike.color)
     dp.register_callback_query_handler(add_new_bike_step10, state=NewBike.gps)
+    dp.register_callback_query_handler(add_new_bike_step10_v1, state=NewBike.style)
     dp.register_callback_query_handler(add_new_bike_step11, state=NewBike.docs)
+    dp.register_callback_query_handler(add_new_bike_step11_2, state=NewBike.exhaust)
     dp.register_message_handler(add_new_bike_step12, state=NewBike.photo, content_types=['photo'])
     dp.register_callback_query_handler(add_new_bike_finish, state=NewBike.status)
     dp.register_callback_query_handler(add_new_another_bike, state=NewBike.another_one)

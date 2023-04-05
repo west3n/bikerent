@@ -7,6 +7,7 @@ async def create_table():
                 f"id SERIAL PRIMARY KEY,"
                 f"brand TEXT,"
                 f"model TEXT,"
+                f'year INT,'
                 f"purchase_price BIGINT,"
                 f"millage INT,"
                 f"abs_cbs BOOLEAN,"
@@ -14,7 +15,9 @@ async def create_table():
                 f"plate_no VARCHAR(15),"
                 f"color TEXT,"
                 f"gps BOOLEAN,"
+                f"style TEXT,"
                 f"docs BOOLEAN,"
+                f"exhaust TEXT,"
                 f"photo BYTEA,"
                 f"status TEXT)")
     db.commit()
@@ -23,9 +26,11 @@ async def create_table():
 async def create_new_bike(data):
     brand = data.get('brand')
     model = data.get('model')
+    year = data.get('year')
     purchase_price = data.get('purchase_price')
     millage = data.get('millage')
     abs_cbs = data.get('abs_cbs')
+    style = data.get('style')
     if abs_cbs == "yes":
         abs_cbs = True
     else:
@@ -52,11 +57,12 @@ async def create_new_bike(data):
     status = data.get('status')
     query = ("""
             INSERT INTO bike 
-                (brand, model, purchase_price, millage, abs_cbs, keyless, plate_no, color, gps, docs, photo, status) 
+                (brand, model, year, purchase_price, millage, abs_cbs, keyless, plate_no, color, gps, style, docs, exhaust, photo, status) 
             VALUES 
-                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """)
-    values = (brand, model, purchase_price, millage, abs_cbs, keyless, plate_no, color, gps, docs, photo, status)
+    values = (
+    brand, model, year, purchase_price, millage, abs_cbs, keyless, plate_no, color, gps, style, docs, exhaust, photo, status)
     cur.execute(query, values)
     db.commit()
 
@@ -97,6 +103,13 @@ async def get_photo(bike_id):
 
 async def get_more_bike_info(bike_id):
     query = "SELECT * FROM bike WHERE id=%s"
+    cur.execute(query, (bike_id,))
+    results = cur.fetchone()
+    return results
+
+
+async def get_bike_status(bike_id):
+    query = "SELECT status FROM bike WHERE id=%s"
     cur.execute(query, (bike_id,))
     results = cur.fetchone()
     return results

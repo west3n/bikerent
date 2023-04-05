@@ -141,22 +141,25 @@ async def kb_update_bike() -> InlineKeyboardMarkup:
 
 async def bike_parameters(bike_id) -> InlineKeyboardMarkup:
     bike = await get_more_bike_info(bike_id)
-    abs_cbs = "Yes" if bike[5] else "No"
-    keyless = "Yes" if bike[6] else "No"
-    gps = "Yes" if bike[9] else "No"
-    docs = "Yes" if bike[10] else "No"
+    abs_cbs = "Yes" if bike[6] else "No"
+    keyless = "Yes" if bike[7] else "No"
+    gps = "Yes" if bike[10] else "No"
+    docs = "Yes" if bike[12] else "No"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(f'Brand: {bike[1]}', callback_data='brand')],
         [InlineKeyboardButton(f'Model: {bike[2]}', callback_data='model')],
-        [InlineKeyboardButton(f'Purchase price: {bike[3]}', callback_data='purchase_price')],
-        [InlineKeyboardButton(f'Millage: {bike[4]}', callback_data='millage')],
+        [InlineKeyboardButton(f'Year: {bike[3]}', callback_data='year')],
+        [InlineKeyboardButton(f'Purchase price: {bike[4]}', callback_data='purchase_price')],
+        [InlineKeyboardButton(f'Millage: {bike[5]}', callback_data='millage')],
         [InlineKeyboardButton(f'ABS/CBS: {abs_cbs}', callback_data='abs_cbs')],
         [InlineKeyboardButton(f'Keyless: {keyless}', callback_data='keyless')],
-        [InlineKeyboardButton(f'Plate No: {bike[7]}', callback_data='plate_no')],
-        [InlineKeyboardButton(f'Color: {bike[8].capitalize()}', callback_data='color')],
+        [InlineKeyboardButton(f'Plate No: {bike[8]}', callback_data='plate_no')],
+        [InlineKeyboardButton(f'Color: {bike[9].capitalize()}', callback_data='color')],
         [InlineKeyboardButton(f'GPS: {gps}', callback_data='gps')],
+        [InlineKeyboardButton(f'Style: {bike[11].capitalize()}', callback_data='style')],
         [InlineKeyboardButton(f'Document on hand: {docs}', callback_data='docs')],
-        [InlineKeyboardButton(f'Status: {bike[12].capitalize()}', callback_data='status')],
+        [InlineKeyboardButton(f'Exhaust: {bike[13].capitalize()}', callback_data='exhaust')],
+        [InlineKeyboardButton(f'Status: {bike[15].capitalize()}', callback_data='status')],
         [InlineKeyboardButton(f'Photo', callback_data='photo')],
         [InlineKeyboardButton('Back', callback_data='back')]
     ])
@@ -173,5 +176,55 @@ def kb_cancel() -> InlineKeyboardMarkup:
 def kb_main_menu() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Back to main menu', callback_data='back_main')]
+    ])
+    return kb
+
+
+async def kb_booking_bike() -> InlineKeyboardMarkup:
+    bikes = await get_bike_info()
+    bike_callback = CallbackData("booking", "id")
+    kb = InlineKeyboardMarkup()
+    for bike in bikes:
+        button = InlineKeyboardButton(text=f'model: {bike[1]}, plate NO: {bike[2]}',
+                                      callback_data=bike_callback.new(id=bike[0]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_main')
+    kb.add(back)
+    return kb
+
+
+def kb_month() -> InlineKeyboardMarkup:
+    months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+              'August', 'September', 'October', 'November', 'December']
+    buttons = []
+    for i, month in enumerate(months, start=1):
+        button = InlineKeyboardButton(month, callback_data=f"month_{i}")
+        buttons.append(button)
+    calendar_keyboard = InlineKeyboardMarkup(row_width=3)
+    calendar_keyboard.add(*buttons)
+    return calendar_keyboard
+
+
+def kb_rental_period() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Daily', callback_data='1_day')],
+        [InlineKeyboardButton('Weekly', callback_data='1_week')],
+        [InlineKeyboardButton('Monthly', callback_data='1_month')],
+        [InlineKeyboardButton('Other period', callback_data='other_period')]
+    ])
+    return kb
+
+
+def kb_bike_style() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Stock', callback_data='stock')],
+        [InlineKeyboardButton('Custom', callback_data='custom')],
+    ])
+    return kb
+
+
+def press_x_to_win() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Info for deliveryman', callback_data='press_x')]
     ])
     return kb
