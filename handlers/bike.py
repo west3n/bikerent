@@ -135,7 +135,7 @@ async def add_new_bike_step11(call: types.CallbackQuery, state: FSMContext):
 
 async def add_new_bike_step12(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        file = await msg.bot.download_file_by_id(msg.photo[3].file_id)
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
         photo_bytes = file.read()
         data['photo'] = photo_bytes
     await msg.answer("Select bike status", reply_markup=inline.kb_bike_status())
@@ -168,7 +168,6 @@ async def delete_bike_(call: types.CallbackQuery):
 
 
 async def delete_confirmation(call: types.CallbackQuery, state: FSMContext):
-    print(call.data)
     if call.data == 'back':
         await state.finish()
         await call.message.edit_text("Select one option:", reply_markup=inline.kb_bike_settings())
@@ -254,17 +253,22 @@ async def update_bike_step3(call: types.CallbackQuery, state: FSMContext):
 async def update_bike_step4_msg(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         if msg.text:
-            data['new_parameter'] = msg.text
-            new_data = {f"{data.get('parameter')}": f"{data.get('new_parameter')}"}
+            parameter = data.get('parameter')
+            new_parameter = msg.text
+            if parameter in ['purchase_price', 'mileage'] and not new_parameter.isdigit():
+                await msg.answer('Please enter digits only.')
+                return
+            new_data = {parameter: new_parameter}
         elif msg.photo:
-            file = await msg.bot.download_file_by_id(msg.photo[3].file_id)
+            file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
             photo_bytes = file.read()
-            data['new_parameter'] = photo_bytes
-            new_data = {f"{data.get('parameter')}": data.get('new_parameter')}
-    await db_update_bike(bike_id=data.get('bike_id'), data=new_data)
-    await state.finish()
-    await msg.answer('Complete! Select bike for update:', reply_markup=await inline.kb_update_bike())
-    await UpdateBike.pick.set()
+            new_data = {data.get('parameter'): photo_bytes}
+        else:
+            return
+        await db_update_bike(bike_id=data.get('bike_id'), data=new_data)
+        await state.finish()
+        await msg.answer('Bike updated. Select a bike to update:', reply_markup=await inline.kb_update_bike())
+        await UpdateBike.pick.set()
 
 
 async def update_bike_step4_call(call: types.CallbackQuery, state: FSMContext):
@@ -284,7 +288,7 @@ async def update_bike_step4_call(call: types.CallbackQuery, state: FSMContext):
         await db_update_bike(bike_id=data.get('bike_id'), data=new_data)
         await state.finish()
         await call.message.delete()
-        await call.message.answer('Complete! Select bike for update:', reply_markup=await inline.kb_update_bike())
+        await call.message.answer('Bike updated. Select a bike to update:', reply_markup=await inline.kb_update_bike())
         await UpdateBike.pick.set()
 
 

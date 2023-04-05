@@ -1,5 +1,4 @@
 from database.postgresql import db, cur
-import asyncio
 
 
 async def create_table():

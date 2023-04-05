@@ -47,6 +47,7 @@ async def create_new_bike(data):
         docs = True
     else:
         docs = False
+    exhaust = data.get('exhaust')
     photo = data.get('photo')
     status = data.get('status')
     query = ("""
