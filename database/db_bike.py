@@ -113,3 +113,15 @@ async def get_bike_status(bike_id):
     cur.execute(query, (bike_id,))
     results = cur.fetchone()
     return results
+
+
+async def change_bike_status_to_booking(bike_id):
+    query = "UPDATE bike SET status='booking' WHERE id=%s"
+    cur.execute(query, (bike_id,))
+    db.commit()
+
+
+async def change_bike_status_to_free(bike_id):
+    query = "UPDATE bike SET status='free' WHERE id=%s"
+    cur.execute(query, (bike_id,))
+    db.commit()

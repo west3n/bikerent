@@ -7,8 +7,7 @@ from handlers.commands import register as reg_handlers
 from handlers.superuser import register as reg_superuser
 from handlers.bike import register as reg_bike
 from handlers.booking import register as reg_booking
-# from handlers.test import register as reg_test
-
+from handlers.delivery import register as reg_delivery
 
 bot_token = config("BOT_TOKEN")
 logger = logging.getLogger(__name__)
@@ -25,4 +24,4 @@ def register_handlers(dp: Dispatcher):
     reg_superuser(dp)
     reg_bike(dp)
     reg_booking(dp)
-    # reg_test(dp)
+    reg_delivery(dp)

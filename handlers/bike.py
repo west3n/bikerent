@@ -286,7 +286,7 @@ async def update_bike_step4_msg(msg: types.Message, state: FSMContext):
         if msg.text:
             parameter = data.get('parameter')
             new_parameter = msg.text
-            if parameter in ['purchase_price', 'mileage'] and not new_parameter.isdigit():
+            if parameter in ['purchase_price', 'mileage', 'year'] and not new_parameter.isdigit():
                 await msg.answer('Please enter digits only.')
                 return
             new_data = {parameter: new_parameter}

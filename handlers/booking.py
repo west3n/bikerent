@@ -1,15 +1,18 @@
 import calendar
 import re
+from datetime import timedelta
 
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
+
+from database import db_admins, postgresql
 from keyboards import inline
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from database.db_client import add_client, get_client_id
-from database.db_bike import get_bike_status
+from database.db_bike import get_bike_status, change_bike_status_to_booking, change_bike_status_to_free
 from google_json import sheets
-from database.db_booking import add_booking
+from database.db_booking import add_booking, check_booking, delete_booking
 
 
 class Booking(StatesGroup):
@@ -28,10 +31,24 @@ class Booking(StatesGroup):
     delivery_price = State()
 
 
+class CancelBooking(StatesGroup):
+    bike = State()
+    confirm = State()
+    finish = State()
+
+
 async def back_button(call: types.CallbackQuery, state: FSMContext):
-    name = call.from_user.first_name
     await state.finish()
-    await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+    name = call.from_user.first_name
+    tg_id = call.from_user.id
+    user_status = await db_admins.check_status(tg_id)
+    if user_status:
+        if user_status[0] == "superuser":
+            await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+        elif user_status[0] == "manager":
+            await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
+        elif user_status[0] == "deliveryman":
+            await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
 
 
 async def new_booking_start(call: types.CallbackQuery):
@@ -44,33 +61,86 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['bike'] = call.data.split(":")[1]
     bike_status = await get_bike_status(bike_id=call.data.split(":")[1])
-    await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n\nSelect start date:\n\nMonth:',
-                                 reply_markup=inline.kb_month())
+    if bike_status[0] == 'booking':
+        bookings = await check_booking(bike_id=data.get('bike'))
+        if bookings:
+            x = ''
+            for booking in bookings:
+                start_date = booking[2].strftime("%d.%m.%Y")
+                end_date = (booking[2] + timedelta(days=int(booking[3]))).strftime("%d.%m.%Y")
+                x += f'ID: {booking[0]} - Start: {start_date}, End: {end_date}\n'
+
+            await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n'
+                                         f'{x}\n'
+                                         f'\nSelect start date:\n\nMonth:',
+                                         reply_markup=inline.kb_month())
+        else:
+            await change_bike_status_to_free(bike_id=data.get('bike'))
+            await call.message.edit_text(f'Bike status: Free\n'
+                                         f'\nSelect start date:\n\nMonth:',
+                                         reply_markup=inline.kb_month())
+    else:
+        await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n\nSelect start date:\n\nMonth:',
+                                     reply_markup=inline.kb_month())
+
     await Booking.next()
 
 
-async def new_booking_start_step2(call: types.CallbackQuery):
-    _, month_number = call.data.split("_")
-    days_in_month = calendar.monthrange(2023, int(month_number))[1]
-    buttons = []
-    for day in range(1, days_in_month + 1):
-        button = InlineKeyboardButton(str(day), callback_data=f"date_{month_number}_{day}")
-        buttons.append(button)
-    date_keyboard = InlineKeyboardMarkup(row_width=7)
-    date_keyboard.add(*buttons)
-    await call.message.edit_text("Select start date:\n\nDay:", reply_markup=date_keyboard)
-    await Booking.next()
+async def new_booking_start_step2(call: types.CallbackQuery, state: FSMContext):
+    if call.data == "back":
+        await state.finish()
+        await call.message.edit_text('Select bike for booking:',
+                                     reply_markup=await inline.kb_booking_bike())
+        await Booking.bike.set()
+    else:
+        async with state.proxy() as data:
+            data["start_month"] = call.data
+            _, month_number = call.data.split("_")
+            days_in_month = calendar.monthrange(2023, int(month_number))[1]
+            buttons = []
+            for day in range(1, days_in_month + 1):
+                button = InlineKeyboardButton(str(day), callback_data=f"date_{month_number}_{day}")
+                buttons.append(button)
+            date_keyboard = InlineKeyboardMarkup(row_width=7)
+            date_keyboard.add(*buttons)
+            previous_step = InlineKeyboardButton("Back", callback_data="back")
+            date_keyboard.add(previous_step)
+            await call.message.edit_text("Select start date:\n\nDay:", reply_markup=date_keyboard)
+            await Booking.next()
 
 
 async def new_booking_start_step3(call: types.CallbackQuery, state: FSMContext):
-    async with state.proxy() as data:
-        data['start_day'] = call.data
-    await call.message.edit_text("Select rental period:", reply_markup=inline.kb_rental_period())
-    await Booking.next()
+    if call.data == "back":
+        await state.set_state(Booking.bike.state)
+        async with state.proxy() as data:
+            bike_status = await get_bike_status(bike_id=int(data.get('bike')))
+            await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n\nSelect start date:\n\nMonth:',
+                                         reply_markup=inline.kb_month())
+            await Booking.next()
+    else:
+        async with state.proxy() as data:
+            data['start_day'] = call.data
+        await call.message.edit_text("Select rental period:", reply_markup=inline.kb_rental_period())
+        await Booking.next()
 
 
 async def new_booking_start_step4(call: types.CallbackQuery, state: FSMContext):
-    if call.data == 'other_period':
+    if call.data == "back":
+        await state.set_state(Booking.start_month.state)
+        async with state.proxy() as data:
+            _, month_number = data.get('start_month').split("_")
+            days_in_month = calendar.monthrange(2023, int(month_number))[1]
+            buttons = []
+            for day in range(1, days_in_month + 1):
+                button = InlineKeyboardButton(str(day), callback_data=f"date_{month_number}_{day}")
+                buttons.append(button)
+            date_keyboard = InlineKeyboardMarkup(row_width=7)
+            date_keyboard.add(*buttons)
+            previous_step = InlineKeyboardButton("Back", callback_data="back")
+            date_keyboard.add(previous_step)
+            await call.message.edit_text("Select start date:\n\nDay:", reply_markup=date_keyboard)
+            await Booking.next()
+    elif call.data == 'other_period':
         await call.message.edit_text("Input rental period amount (DAYS):")
         await Booking.next()
     else:
@@ -108,22 +178,30 @@ async def new_booking_start_step4_2(msg: types.Message, state: FSMContext):
 
 
 async def new_booking_start_step5(call: types.CallbackQuery, state: FSMContext):
-    if call.data == 'yes':
-        await call.message.edit_text("Input price after discount:")
-        await Booking.next()
-    else:
-        async with state.proxy() as data:
-            data['discount'] = call.data
-        await call.message.edit_text("Input client name:")
-        await state.set_state(Booking.client_name.state)
+    async with state.proxy() as data:
+        if call.data == 'yes':
+            await call.message.edit_text(f"Price before discount - {data.get('price')}\n\n"
+                                         f"Input price after discount:")
+            await Booking.next()
+        else:
+            async with state.proxy() as data:
+                data['discount'] = 0
+            await call.message.edit_text("Input client name:")
+            await state.set_state(Booking.client_name.state)
 
 
 async def new_booking_start_step5_2(msg: types.Message, state: FSMContext):
     if msg.text.isdigit():
         async with state.proxy() as data:
-            data['price'] = msg.text
-        await msg.answer("Input client name:")
-        await Booking.next()
+            last = int(data.get('price'))
+            now = int(msg.text)
+            discount = last - now
+            if discount < 0:
+                await msg.answer("Price before less than after! Try again")
+            else:
+                data.update({'price': msg.text, 'discount': discount})
+                await msg.answer("Input client name:")
+                await Booking.next()
     else:
         await msg.answer("Use digits only!")
 
@@ -136,12 +214,17 @@ async def new_booking_start_step6(msg: types.Message, state: FSMContext):
 
 
 async def new_booking_start_step7(msg: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['client_contact'] = msg.text
-    await add_client(data)
-    await msg.answer("New client created!\n\n Please, press button for finish booking",
-                     reply_markup=inline.press_x_to_win())
-    await Booking.next()
+    try:
+        async with state.proxy() as data:
+            data['client_contact'] = msg.text
+        await add_client(data)
+        await msg.answer("New client created!\n\n Please, press button for finish booking",
+                         reply_markup=inline.press_x_to_win())
+        await Booking.next()
+    except:
+        postgresql.db.rollback()
+        await msg.delete()
+        await msg.answer("This client already has opened rental! Try again")
 
 
 async def new_booking_start_step8(call: types.CallbackQuery, state: FSMContext):
@@ -183,9 +266,58 @@ async def new_booking_finish(msg: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data['delivery_price'] = msg.text
         await add_booking(data)
-        await msg.answer(f"Booking saved!")
+        await msg.answer(f"Booking saved!\n\n{data}")
+        await change_bike_status_to_booking(bike_id=data.get('bike'))
+        await state.finish()
     else:
         await msg.answer("Use digits only!")
+
+
+async def cancel_booking(call: types.CallbackQuery):
+    await call.message.edit_text("Select bike for cancellation:", reply_markup=await inline.kb_booking_bike())
+    await CancelBooking.bike.set()
+
+
+async def cancel_booking_selection(call: types.CallbackQuery, state: FSMContext):
+    bike_id = call.data.split(":")[1]
+    async with state.proxy() as data:
+        data['bike'] = bike_id
+    bookings = await check_booking(bike_id)
+    if bookings:
+        await call.message.edit_text("Select booking for cancellation:",
+                                     reply_markup=await inline.kb_cancel_booking(bike_id))
+        await CancelBooking.next()
+    else:
+        await call.message.edit_text("There's no bookings for cancellation!",
+                                     reply_markup=await inline.kb_cancel_booking(bike_id))
+
+
+async def cancel_booking_confirmation(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'back':
+        await state.finish()
+        await call.message.edit_text("Select bike for cancellation:", reply_markup=await inline.kb_booking_bike())
+        await CancelBooking.bike.set()
+    else:
+        async with state.proxy() as data:
+            data['confirm'] = call.data.split(":")[1]
+        await call.message.edit_text("Are you sure?",
+                                     reply_markup=inline.kb_yesno())
+        await CancelBooking.next()
+
+
+async def cancel_booking_finish(call: types.CallbackQuery, state: FSMContext):
+    if call.data == "yes":
+        async with state.proxy() as data:
+            await call.message.edit_text("Booking successfully deleted!", reply_markup=inline.kb_main_menu())
+            await delete_booking(int(data.get('confirm')))
+            await state.finish()
+    else:
+        async with state.proxy() as data:
+            await state.set_state(CancelBooking.bike.state)
+            bike_id = data.get('bike')
+            await call.message.edit_text("Select booking for cancellation:",
+                                         reply_markup=await inline.kb_cancel_booking(bike_id))
+            await CancelBooking.next()
 
 
 def register(dp: Dispatcher):
@@ -204,3 +336,7 @@ def register(dp: Dispatcher):
     dp.register_message_handler(new_booking_start_step9, state=Booking.address)
     dp.register_message_handler(new_booking_start_step10, state=Booking.delivery_time)
     dp.register_message_handler(new_booking_finish, state=Booking.delivery_price)
+    dp.register_callback_query_handler(cancel_booking, text='cancel_booking')
+    dp.register_callback_query_handler(cancel_booking_selection, state=CancelBooking.bike)
+    dp.register_callback_query_handler(cancel_booking_confirmation, state=CancelBooking.confirm)
+    dp.register_callback_query_handler(cancel_booking_finish, state=CancelBooking.finish)

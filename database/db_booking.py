@@ -48,19 +48,36 @@ async def add_booking(data):
     formatted_datetime = datetime_obj.strftime('%Y-%m-%d %H:%M')
     delivery_price = data.get('delivery_price')
     price = data.get('price')
-    try:
-        discount = data.get('discount')
-        if discount == "yes":
-            discount = 1
-        else:
-            discount = 0
-    except:
-        discount = 1
+    discount = data.get('discount')
     cur.execute("""
             INSERT INTO booking
             (bike, start_date, rental_period, discount, client, address, delivery_time, delivery_price, price)
             VALUES
             (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (bike_id, date_obj, rental_period, discount, client_id, address, formatted_datetime, delivery_price, price))
+        """, (
+    bike_id, date_obj, rental_period, discount, client_id, address, formatted_datetime, delivery_price, price))
     db.commit()
+
+
+async def check_booking(bike_id):
+    cur.execute("""SELECT * FROM booking WHERE bike=%s""", (bike_id,))
+    result = cur.fetchall()
+    return result
+
+
+async def delete_booking(booking_id):
+    cur.execute("DELETE FROM booking WHERE id=%s", (booking_id,))
+    db.commit()
+
+
+async def get_client_id(booking_id):
+    cur.execute("SELECT client FROM booking WHERE id=%s", (booking_id,))
+    result = cur.fetchone()
+    return result
+
+
+async def get_booking_data_by_client_id(client_id):
+    cur.execute("SELECT * FROM booking WHERE client=%s", (client_id,))
+    result = cur.fetchall()
+    return result
 

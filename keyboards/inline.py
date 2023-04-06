@@ -1,6 +1,9 @@
+from datetime import timedelta, datetime
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
 from database.db_bike import get_bike_info, get_more_bike_info
+from database.db_booking import check_booking
 
 
 def start_superuser() -> InlineKeyboardMarkup:
@@ -202,6 +205,8 @@ def kb_month() -> InlineKeyboardMarkup:
         buttons.append(button)
     calendar_keyboard = InlineKeyboardMarkup(row_width=3)
     calendar_keyboard.add(*buttons)
+    previous_step = InlineKeyboardButton("Back", callback_data="back")
+    calendar_keyboard.add(previous_step)
     return calendar_keyboard
 
 
@@ -210,7 +215,8 @@ def kb_rental_period() -> InlineKeyboardMarkup:
         [InlineKeyboardButton('Daily', callback_data='1_day')],
         [InlineKeyboardButton('Weekly', callback_data='1_week')],
         [InlineKeyboardButton('Monthly', callback_data='1_month')],
-        [InlineKeyboardButton('Other period', callback_data='other_period')]
+        [InlineKeyboardButton('Other period', callback_data='other_period')],
+        [InlineKeyboardButton('Back', callback_data='back')]
     ])
     return kb
 
@@ -226,5 +232,56 @@ def kb_bike_style() -> InlineKeyboardMarkup:
 def press_x_to_win() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Info for deliveryman', callback_data='press_x')]
+    ])
+    return kb
+
+
+async def kb_cancel_booking(bike_id) -> InlineKeyboardMarkup:
+    bookings = await check_booking(bike_id)
+    if bookings:
+        booking_callback = CallbackData("booking_cancel", "id")
+        kb = InlineKeyboardMarkup()
+        for booking in bookings:
+            start_date = booking[2].strftime("%d.%m.%Y")
+            end_date = (booking[2] + timedelta(days=int(booking[3]))).strftime("%d.%m.%Y")
+            button = InlineKeyboardButton(text=f'ID: {booking[0]} - Start: {start_date}, End: {end_date}',
+                                          callback_data=booking_callback.new(id=f'{booking[0]}'))
+            kb.add(button)
+        previous_step = InlineKeyboardButton(text="Back", callback_data="back")
+        kb.add(previous_step)
+        return kb
+    else:
+        kb = InlineKeyboardMarkup()
+        return_to_menu = InlineKeyboardButton(text="Return to main menu", callback_data="back_main")
+        kb.add(return_to_menu)
+        return kb
+
+
+async def kb_start_delivery(bike_id) -> InlineKeyboardMarkup:
+    bookings = await check_booking(bike_id)
+    if bookings:
+        booking_callback = CallbackData("delivery", "id")
+        kb = InlineKeyboardMarkup()
+        for booking in bookings:
+            datetime_obj = booking[7]
+            output_date = datetime_obj.strftime('%H:%M %d.%m.%Y')
+            button = InlineKeyboardButton(text=f'ID: {booking[0]} -  Delivery time: {output_date}',
+                                          callback_data=booking_callback.new(id=f'{booking[0]}'))
+            kb.add(button)
+        previous_step = InlineKeyboardButton(text="Back", callback_data="back")
+        kb.add(previous_step)
+        return kb
+    else:
+        kb = InlineKeyboardMarkup()
+        return_to_menu = InlineKeyboardButton(text="Return to main menu", callback_data="back_main")
+        kb.add(return_to_menu)
+        return kb
+
+
+def kb_payment_method() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Transfer', callback_data='transfer')],
+        [InlineKeyboardButton('Crypto', callback_data='crypto')],
+        [InlineKeyboardButton('Cash', callback_data='cash')]
     ])
     return kb
