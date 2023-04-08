@@ -8,6 +8,8 @@ from keyboards import inline
 from handlers.qr_generation import generate_qr
 from database.db_delivery import add_new_delivery
 from database.db_client import update_after_delivery
+from database.db_bike import get_millage, update_millage
+from database.db_rent import add_new_rent
 
 
 class Delivery(StatesGroup):
@@ -78,16 +80,28 @@ async def delivery_millage(call: types.CallbackQuery, state: FSMContext):
     else:
         async with state.proxy() as data:
             data['booking_id'] = call.data.split(":")[1]
-        await call.message.edit_text("Input bike millage:")
+        millage = await get_millage(bike_id=int(data.get('bike_id')))
+        await call.message.edit_text(f"Millage now: {millage}\n\n"
+                                     f"Input bike millage:")
         await Delivery.next()
 
 
 async def delivery_leftside(msg: types.Message, state: FSMContext):
     if msg.text.isdigit():
+
         async with state.proxy() as data:
-            data["bike_millage"] = msg.text
-        await msg.answer("Make photo of LEFT side and send to bot:")
-        await Delivery.next()
+            millage = await get_millage(bike_id=int(data.get('bike_id')))
+            if int(msg.text) >= millage:
+                data["bike_millage"] = msg.text
+                await update_millage(millage=int(data.get('bike_millage')),
+                                     bike_id=int(data.get('bike_id')))
+                await msg.answer("Make photo of LEFT side and send to bot:")
+                await Delivery.next()
+            else:
+                await msg.delete()
+                await msg.answer(f"Millage data can't be less than existing equal: {millage}\n"
+                                 f"Try again!")
+
     else:
         await msg.delete()
         await msg.answer("Only digits!")
@@ -345,6 +359,7 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
             call.message.chat.id,
             photo=img_buffer,
             caption='Show this QR to client')
+        await add_new_rent(booking_id)
 
 
 def register(dp: Dispatcher):

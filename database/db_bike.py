@@ -125,3 +125,16 @@ async def change_bike_status_to_free(bike_id):
     query = "UPDATE bike SET status='free' WHERE id=%s"
     cur.execute(query, (bike_id,))
     db.commit()
+
+
+async def update_millage(millage, bike_id):
+    query = "UPDATE bike SET millage=%s WHERE id=%s"
+    cur.execute(query, (millage, bike_id,))
+    db.commit()
+
+
+async def get_millage(bike_id):
+    query = "SELECT millage FROM bike WHERE id=%s"
+    cur.execute(query, (bike_id,))
+    result = cur.fetchone()
+    return result[0]

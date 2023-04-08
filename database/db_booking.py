@@ -68,6 +68,12 @@ async def check_booking(bike_id):
     return result
 
 
+async def status_booking(booking_id):
+    cur.execute("""SELECT * FROM booking WHERE id=%s""", (booking_id,))
+    result = cur.fetchone()
+    return result
+
+
 async def delete_booking(booking_id):
     cur.execute("DELETE FROM booking WHERE id=%s", (booking_id,))
     db.commit()

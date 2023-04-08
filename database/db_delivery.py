@@ -16,10 +16,20 @@ async def create_table():
             backside_photo BYTEA,
             passport_number_client TEXT,
             client_with_passport_photo BYTEA,
-            payment_method TEXT
+            payment_method TEXT,
+            add_photo BYTEA,
+            add_photo2 BYTEA,
+            add_photo3 BYTEA,
+            add_photo4 BYTEA,
+            add_photo5 BYTEA,
+            add_photo6 BYTEA,
+            add_photo7 BYTEA,
+            add_photo8 BYTEA
         )
     ''')
     db.commit()
+
+
 
 
 async def add_new_delivery(data):
