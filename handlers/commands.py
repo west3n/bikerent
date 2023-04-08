@@ -1,8 +1,11 @@
+import io
+
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 
 from database import db_admins
 from keyboards import inline
+from database import db_delivery
 
 
 async def bot_start(msg: types.Message, state: FSMContext):

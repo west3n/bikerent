@@ -18,6 +18,14 @@ class Delivery(StatesGroup):
     frontside_photo = State()
     rightside_photo = State()
     backside_photo = State()
+    add_photo = State()
+    add_photo_2 = State()
+    add_photo_3 = State()
+    add_photo_4 = State()
+    add_photo_5 = State()
+    add_photo_6 = State()
+    add_photo_7 = State()
+    add_photo_8 = State()
     passport_number = State()
     passport_photo = State()
     license_photo = State()
@@ -112,11 +120,155 @@ async def delivery_backside(msg: types.Message, state: FSMContext):
     await Delivery.next()
 
 
-async def delivery_passport_number(msg: types.Message, state: FSMContext):
+async def delivery_add_photo(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
         photo_bytes = file.read()
         data['backside_photo'] = photo_bytes
+    await msg.answer("You want to add more photos?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_add_photo_callback_handler(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        await call.message.edit_text("Make FIRST additional photo:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.add_photo_8.state)
+        await call.message.edit_text("Input passport number:")
+        await Delivery.next()
+
+
+async def delivery_add_photo_2(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
+        photo_bytes = file.read()
+        data['add_photo'] = photo_bytes
+    await msg.answer("You want to add one more photo?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_add_photo_2_callback_handler(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        await call.message.edit_text("Make SECOND additional photo:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.add_photo_8.state)
+        await call.message.edit_text("Input passport number:")
+        await Delivery.next()
+
+
+async def delivery_add_photo_3(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
+        photo_bytes = file.read()
+        data['add_photo_2'] = photo_bytes
+    await msg.answer("You want to add one more photo?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_add_photo_3_callback_handler(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        await call.message.edit_text("Make THIRD additional photo:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.add_photo_8.state)
+        await call.message.edit_text("Input passport number:")
+        await Delivery.next()
+
+
+async def delivery_add_photo_4(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
+        photo_bytes = file.read()
+        data['add_photo_3'] = photo_bytes
+    await msg.answer("You want to add one more photo?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_add_photo_4_callback_handler(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        await call.message.edit_text("Make FOURTH additional photo:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.add_photo_8.state)
+        await call.message.edit_text("Input passport number:")
+        await Delivery.next()
+
+
+async def delivery_add_photo_5(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
+        photo_bytes = file.read()
+        data['add_photo_4'] = photo_bytes
+    await msg.answer("You want to add one more photo?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_add_photo_5_callback_handler(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        await call.message.edit_text("Make FIFTH additional photo:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.add_photo_8.state)
+        await call.message.edit_text("Input passport number:")
+        await Delivery.next()
+
+
+async def delivery_add_photo_6(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
+        photo_bytes = file.read()
+        data['add_photo_5'] = photo_bytes
+    await msg.answer("You want to add one more photo?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_add_photo_6_callback_handler(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        await call.message.edit_text("Make SIXTH additional photo:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.add_photo_8.state)
+        await call.message.edit_text("Input passport number:")
+        await Delivery.next()
+
+
+async def delivery_add_photo_7(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
+        photo_bytes = file.read()
+        data['add_photo_6'] = photo_bytes
+    await msg.answer("You want to add one more photo?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_add_photo_7_callback_handler(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        await call.message.edit_text("Make SEVENTH additional photo:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.add_photo_8.state)
+        await call.message.edit_text("Input passport number:")
+        await Delivery.next()
+
+
+async def delivery_add_photo_8(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
+        photo_bytes = file.read()
+        data['add_photo_7'] = photo_bytes
+    await msg.answer("You want to add one more photo?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_add_photo_8_callback_handler(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        await call.message.edit_text("Make LAST additional photo:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.add_photo_8.state)
+        await call.message.edit_text("Input passport number:")
+        await Delivery.next()
+
+
+async def delivery_passport_number(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
+        photo_bytes = file.read()
+        data['add_photo_8'] = photo_bytes
     await msg.answer("Input passport number:")
     await Delivery.next()
 
@@ -124,7 +276,7 @@ async def delivery_passport_number(msg: types.Message, state: FSMContext):
 async def delivery_passport_photo(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['passport_number'] = msg.text
-    await msg.answer("Make photo of CLIENT PASSPORT and send to bot:")
+    await msg.answer("Make photo of PASSPORT and send to bot:")
     await Delivery.next()
 
 
@@ -133,7 +285,7 @@ async def delivery_license_photo(msg: types.Message, state: FSMContext):
         file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
         photo_bytes = file.read()
         data['passport_photo'] = photo_bytes
-    await msg.answer("Make photo of CLIENT LICENSE and send to bot:")
+    await msg.answer("Make photo of LICENSE and send to bot:")
     await Delivery.next()
 
 
@@ -204,7 +356,23 @@ def register(dp: Dispatcher):
     dp.register_message_handler(delivery_frontside, content_types=['photo'], state=Delivery.leftside_photo)
     dp.register_message_handler(delivery_rightside, content_types=['photo'], state=Delivery.frontside_photo)
     dp.register_message_handler(delivery_backside, content_types=['photo'], state=Delivery.rightside_photo)
-    dp.register_message_handler(delivery_passport_number, content_types=['photo'], state=Delivery.backside_photo)
+    dp.register_message_handler(delivery_add_photo, content_types=['photo'], state=Delivery.backside_photo)
+    dp.register_callback_query_handler(delivery_add_photo_callback_handler, state=Delivery.backside_photo)
+    dp.register_message_handler(delivery_add_photo_2, content_types=['photo'], state=Delivery.add_photo)
+    dp.register_callback_query_handler(delivery_add_photo_2_callback_handler, state=Delivery.add_photo)
+    dp.register_message_handler(delivery_add_photo_3, content_types=['photo'], state=Delivery.add_photo_2)
+    dp.register_callback_query_handler(delivery_add_photo_3_callback_handler, state=Delivery.add_photo_2)
+    dp.register_message_handler(delivery_add_photo_4, content_types=['photo'], state=Delivery.add_photo_3)
+    dp.register_callback_query_handler(delivery_add_photo_4_callback_handler, state=Delivery.add_photo_3)
+    dp.register_message_handler(delivery_add_photo_5, content_types=['photo'], state=Delivery.add_photo_4)
+    dp.register_callback_query_handler(delivery_add_photo_5_callback_handler, state=Delivery.add_photo_4)
+    dp.register_message_handler(delivery_add_photo_6, content_types=['photo'], state=Delivery.add_photo_5)
+    dp.register_callback_query_handler(delivery_add_photo_6_callback_handler, state=Delivery.add_photo_5)
+    dp.register_message_handler(delivery_add_photo_7, content_types=['photo'], state=Delivery.add_photo_6)
+    dp.register_callback_query_handler(delivery_add_photo_7_callback_handler, state=Delivery.add_photo_6)
+    dp.register_message_handler(delivery_add_photo_8, content_types=['photo'], state=Delivery.add_photo_7)
+    dp.register_callback_query_handler(delivery_add_photo_8_callback_handler, state=Delivery.add_photo_7)
+    dp.register_message_handler(delivery_passport_number, content_types=['photo'], state=Delivery.add_photo_8)
     dp.register_message_handler(delivery_passport_photo, state=Delivery.passport_number)
     dp.register_message_handler(delivery_license_photo, content_types=['photo'], state=Delivery.passport_photo)
     dp.register_message_handler(delivery_client_with_passport_photo, content_types=['photo'],

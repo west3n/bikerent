@@ -29,6 +29,7 @@ class Booking(StatesGroup):
     address = State()
     delivery_time = State()
     delivery_price = State()
+    booking_comment = State()
 
 
 class CancelBooking(StatesGroup):
@@ -261,16 +262,38 @@ async def new_booking_start_step10(msg: types.Message, state: FSMContext):
             await msg.answer("Please, use correct template (ex. 9:30 or 16:00)")
 
 
-async def new_booking_finish(msg: types.Message, state: FSMContext):
+async def new_booking_comment(msg: types.Message, state: FSMContext):
     if msg.text.isdigit():
         async with state.proxy() as data:
             data['delivery_price'] = msg.text
+            await msg.answer('You want to add comment to deliveryman?', reply_markup=inline.kb_yesno())
+            await Booking.next()
+    else:
+        await msg.delete()
+        await msg.answer("Use digits only!")
+
+
+async def new_booking_finish(call: types.CallbackQuery, state: FSMContext):
+    if call.data == "yes":
+        await state.set_state(Booking.delivery_price.state)
+        await call.message.edit_text("Input comment:")
+        await Booking.next()
+    else:
+        await state.set_state(Booking.booking_comment.state)
+        async with state.proxy() as data:
+            await add_booking(data)
+            await call.message.edit_text(f"Booking saved!\n\n{data}")
+            await change_bike_status_to_booking(bike_id=data.get('bike'))
+            await state.finish()
+
+
+async def new_booking_finish_with_comment(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data["booking_comment"] = msg.text
         await add_booking(data)
         await msg.answer(f"Booking saved!\n\n{data}")
         await change_bike_status_to_booking(bike_id=data.get('bike'))
         await state.finish()
-    else:
-        await msg.answer("Use digits only!")
 
 
 async def cancel_booking(call: types.CallbackQuery):
@@ -335,7 +358,9 @@ def register(dp: Dispatcher):
     dp.register_callback_query_handler(new_booking_start_step8, state=Booking.client_id)
     dp.register_message_handler(new_booking_start_step9, state=Booking.address)
     dp.register_message_handler(new_booking_start_step10, state=Booking.delivery_time)
-    dp.register_message_handler(new_booking_finish, state=Booking.delivery_price)
+    dp.register_message_handler(new_booking_comment, state=Booking.delivery_price)
+    dp.register_callback_query_handler(new_booking_finish, state=Booking.booking_comment)
+    dp.register_message_handler(new_booking_finish_with_comment, state=Booking.booking_comment)
     dp.register_callback_query_handler(cancel_booking, text='cancel_booking')
     dp.register_callback_query_handler(cancel_booking_selection, state=CancelBooking.bike)
     dp.register_callback_query_handler(cancel_booking_confirmation, state=CancelBooking.confirm)

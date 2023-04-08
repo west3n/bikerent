@@ -15,7 +15,8 @@ async def create_table():
             address TEXT,
             delivery_time TEXT,
             delivery_price INTEGER DEFAULT 0,
-            price BIGINT
+            price BIGINT,
+            comment TEXT
         );
     """)
     cur.execute("""
@@ -49,13 +50,15 @@ async def add_booking(data):
     delivery_price = data.get('delivery_price')
     price = data.get('price')
     discount = data.get('discount')
+    comment = data.get('booking_comment')
     cur.execute("""
             INSERT INTO booking
-            (bike, start_date, rental_period, discount, client, address, delivery_time, delivery_price, price)
+            (bike, start_date, rental_period, discount, client, address, delivery_time, delivery_price, price, comment)
             VALUES
-            (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-    bike_id, date_obj, rental_period, discount, client_id, address, formatted_datetime, delivery_price, price))
+        bike_id, date_obj, rental_period, discount, client_id, address, formatted_datetime, delivery_price, price,
+        comment))
     db.commit()
 
 
@@ -80,4 +83,3 @@ async def get_booking_data_by_client_id(client_id):
     cur.execute("SELECT * FROM booking WHERE client=%s", (client_id,))
     result = cur.fetchall()
     return result
-
