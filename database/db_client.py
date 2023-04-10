@@ -1,5 +1,5 @@
 from database.postgresql import db, cur
-
+import datetime
 
 
 async def create_table():
@@ -63,4 +63,12 @@ async def update_after_delivery(data, client_id):
 
     cur.execute("UPDATE client SET contact = %s, photo_id = %s, photo_license = %s WHERE id=%s",
                 (contact, photo_id, photo_license, client_id))
+    db.commit()
+
+
+async def update_after_finish_rent(client_id):
+    contact = await get_client_contact(int(client_id))
+    contact = f'Rent info: {contact[0]}\n'
+    contact += f'Finish rent: {datetime.datetime.now()}'
+    cur.execute("UPDATE client SET contact = %s WHERE id=%s", (contact, client_id,))
     db.commit()

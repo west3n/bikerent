@@ -2,8 +2,9 @@ from datetime import timedelta
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
-from database.db_bike import get_bike_info, get_more_bike_info
+from database.db_bike import get_bike_info, get_more_bike_info, get_bike
 from database.db_booking import check_booking
+from database.db_rent import all_rent
 
 
 def start_superuser() -> InlineKeyboardMarkup:
@@ -285,3 +286,42 @@ def kb_payment_method() -> InlineKeyboardMarkup:
         [InlineKeyboardButton('Cash', callback_data='cash')]
     ])
     return kb
+
+
+async def kb_all_rent() -> InlineKeyboardMarkup:
+    rents = await all_rent()
+    rent_callback = CallbackData("rent", "id")
+
+    kb = InlineKeyboardMarkup()
+    for rent in rents:
+        bike = await get_bike(rent[1])
+        button = InlineKeyboardButton(text=f'Bike: {bike[1]} ({bike[2]}), Rent end: {rent[4].strftime("%d.%m.%Y")}',
+                                      callback_data=rent_callback.new(id=rent[0]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_main')
+    kb.add(back)
+    return kb
+
+def kb_confirm_qr() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Confirm', callback_data='confirm_qr')]
+    ])
+    return kb
+
+
+def kb_information() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Check bike price', callback_data='check_bike_price')],
+        [InlineKeyboardButton('Check available bikes', callback_data='check_available_bikes')],
+        [InlineKeyboardButton('Check rental status', callback_data='check_rental_status')],
+        [InlineKeyboardButton('Back', callback_data='back_main')]
+    ])
+    return kb
+
+
+def kb_back()-> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Back', callback_data='info_back')]
+    ])
+    return kb
+

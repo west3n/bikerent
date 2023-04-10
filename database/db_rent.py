@@ -6,6 +6,7 @@ from database.db_booking import status_booking
 
 def create_table():
     cur.execute(f"CREATE TABLE rent ("
+                f"id SERIAL PRIMARY KEY,"
                 f"bike integer REFERENCES bike (id) ON DELETE CASCADE,"
                 f"client integer REFERENCES client (id) ON DELETE CASCADE,"
                 f"date_start date,"
@@ -48,3 +49,12 @@ async def all_rent():
     return result
 
 
+async def finish_rent(rent_id):
+    cur.execute("DELETE FROM rent WHERE id=%s", (rent_id,))
+    db.commit()
+
+
+async def gen_end_date(rent_id):
+    cur.execute("SELECT date_finish FROM rent WHERE id=%s", (rent_id,))
+    result = cur.fetchone()
+    return result

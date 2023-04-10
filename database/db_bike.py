@@ -89,6 +89,14 @@ async def get_bike_info():
     return results
 
 
+async def get_bike(bike_id):
+    query = "SELECT id, model, plate_no FROM bike WHERE id=%s"
+    values = (bike_id,)
+    cur.execute(query, values)
+    results = cur.fetchone()
+    return results
+
+
 async def get_photo(bike_id):
     query = "SELECT photo FROM bike WHERE id=%s"
     cur.execute(query, (bike_id,))

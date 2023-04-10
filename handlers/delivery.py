@@ -53,6 +53,20 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
         elif user_status[0] == "deliveryman":
             await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
 
+async def confirm_qr(call: types.CallbackQuery, state: FSMContext):
+    await state.finish()
+    await call.message.delete()
+    name = call.from_user.first_name
+    tg_id = call.from_user.id
+    user_status = await db_admins.check_status(tg_id)
+    if user_status:
+        if user_status[0] == "superuser":
+            await call.message.answer(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+        elif user_status[0] == "manager":
+            await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_manager())
+        elif user_status[0] == "deliveryman":
+            await call.message.answer(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+
 
 async def delivery_bike(call: types.CallbackQuery):
     await call.message.edit_text("Select bike:", reply_markup=await inline.kb_booking_bike())
@@ -345,11 +359,11 @@ async def delivery_payment_method(msg: types.Message, state: FSMContext):
 
 
 async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_reply_markup()
     async with state.proxy() as data:
         data['payment_method'] = call.data.capitalize()
         booking_id = int(data.get('booking_id'))
         await add_new_delivery(data)
-
         client_id = await get_client_id(booking_id)
         client_id = client_id[0]
         await update_after_delivery(data, client_id)
@@ -358,12 +372,14 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
         await call.message.bot.send_photo(
             call.message.chat.id,
             photo=img_buffer,
-            caption='Show this QR to client')
+            caption='Show this QR to client',
+            reply_markup=inline.kb_confirm_qr())
         await add_new_rent(booking_id)
 
 
 def register(dp: Dispatcher):
     dp.register_callback_query_handler(back_button, text='back_main', state='*')
+    dp.register_callback_query_handler(confirm_qr, text='confirm_qr', state='*')
     dp.register_callback_query_handler(delivery_bike, text='delivery')
     dp.register_callback_query_handler(delivery_booking, state=Delivery.bike_id)
     dp.register_callback_query_handler(delivery_millage, state=Delivery.booking_id)

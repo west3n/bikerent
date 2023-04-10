@@ -13,6 +13,7 @@ from database.db_client import add_client, get_client_id
 from database.db_bike import get_bike_status, change_bike_status_to_booking, change_bike_status_to_free
 from google_json import sheets
 from database.db_booking import add_booking, check_booking, delete_booking
+from database.db_rent import get_all_rent
 
 
 class Booking(StatesGroup):
@@ -65,7 +66,7 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
     if bike_status[0] == 'booking':
         bookings = await check_booking(bike_id=data.get('bike'))
         if bookings:
-            x = ''
+            x = '<b>Booking</b>\n'
             for booking in bookings:
                 start_date = booking[2].strftime("%d.%m.%Y")
                 end_date = (booking[2] + timedelta(days=int(booking[3]))).strftime("%d.%m.%Y")
@@ -80,6 +81,53 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
             await call.message.edit_text(f'Bike status: Free\n'
                                          f'\nSelect start date:\n\nMonth:',
                                          reply_markup=inline.kb_month())
+    if bike_status[0] == 'rent':
+        bookings = await check_booking(bike_id=data.get('bike'))
+        rents = await get_all_rent(bike_id=data.get('bike'))
+        if bookings != [] and rents != []:
+            x = '<b>Booking</b>\n'
+            for booking in bookings:
+                start_date = booking[2].strftime("%d.%m.%Y")
+                end_date = (booking[2] + timedelta(days=int(booking[3]))).strftime("%d.%m.%Y")
+                x += f'ID: {booking[0]} - Start: {start_date}, End: {end_date}\n'
+            y = '<b>Rent</b>\n'
+            for rent in rents:
+                start_date = rent[3].strftime("%d.%m.%Y")
+                end_date = rent[4].strftime("%d.%m.%Y")
+                y += f"ID: {rent[0]} - Start: {start_date}, End: {end_date}"
+
+            await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n'
+                                         f'{x}\n'
+                                         f'{y}\n'
+                                         f'\nSelect start date:\n\nMonth:',
+                                         reply_markup=inline.kb_month())
+        else:
+            if rents:
+                y = '<b>Rent</b>\n'
+                for rent in rents:
+                    start_date = rent[3].strftime("%d.%m.%Y")
+                    end_date = rent[4].strftime("%d.%m.%Y")
+                    y += f"ID: {rent[0]} - Start: {start_date}, End: {end_date}"
+                await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n'
+                                             f'{y}\n'
+                                             f'\nSelect start date:\n\nMonth:',
+                                             reply_markup=inline.kb_month())
+            if bookings:
+                x = '<b>Booking</b>\n'
+                for booking in bookings:
+                    start_date = booking[2].strftime("%d.%m.%Y")
+                    end_date = (booking[2] + timedelta(days=int(booking[3]))).strftime("%d.%m.%Y")
+                    x += f'ID: {booking[0]} - Start: {start_date}, End: {end_date}\n'
+                await change_bike_status_to_booking(data.get('bike'))
+                await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n'
+                                             f'{x}\n'
+                                             f'\nSelect start date:\n\nMonth:',
+                                             reply_markup=inline.kb_month())
+            else:
+                await change_bike_status_to_free(bike_id=data.get('bike'))
+                await call.message.edit_text(f'Bike status: Free\n'
+                                             f'\nSelect start date:\n\nMonth:',
+                                             reply_markup=inline.kb_month())
     else:
         await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n\nSelect start date:\n\nMonth:',
                                      reply_markup=inline.kb_month())
