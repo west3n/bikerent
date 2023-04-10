@@ -1,6 +1,7 @@
 from datetime import timedelta
 
-from aiogram import Dispatcher, types
+from aiogram import Dispatcher, types, Bot
+from decouple import config
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
@@ -103,7 +104,7 @@ async def extend_current_rental_discount(call: types.CallbackQuery, state: FSMCo
         rent_info = await db_rent.get_all_rent_info(int(bike_id[0]))
         client_name = await db_client.get_client_name(int(rent_info[2]))
         end_date = await db_rent.gen_end_date(int(data.get("rent_id")))
-        new_end_day = (end_date[0] + timedelta(days=rental_period)).strftime("%Y-%m-%d")
+        new_end_day = (end_date[0] + timedelta(days=int(rental_period)))
         await call.message.edit_text(f"Confirm new rent data:\n\n"
                                      f"Bike model: {bike_info[1]} {bike_info[2]}\n"
                                      f"Bike plate number: {bike_info[8]}\n"
@@ -132,7 +133,7 @@ async def extend_current_rental_confirm(msg: types.Message, state: FSMContext):
             rent_info = await db_rent.get_all_rent_info(int(bike_id[0]))
             client_name = await db_client.get_client_name(int(rent_info[2]))
             end_date = await db_rent.gen_end_date(int(data.get("rent_id")))
-            new_end_day = (end_date[0] + timedelta(days=rental_period)).strftime("%Y-%m-%d")
+            new_end_day = (end_date[0] + timedelta(days=int(rental_period)))
             await msg.answer(f"Confirm new rent data:\n\n"
                              f"Bike model: {bike_info[1]} {bike_info[2]}\n"
                              f"Bike plate number: {bike_info[8]}\n"
@@ -143,6 +144,7 @@ async def extend_current_rental_confirm(msg: types.Message, state: FSMContext):
     else:
         await msg.delete()
         await msg.answer("Use digits only!")
+
 
 async def client_bot(client_tg, new_end_day):
     bot = Bot(config("CLIENT_BOT_TOKEN"))
@@ -185,3 +187,4 @@ def register(dp: Dispatcher):
     dp.register_message_handler(extend_current_rental_other_period, state=ExtendRent.rental_period_days)
     dp.register_callback_query_handler(extend_current_rental_discount, state=ExtendRent.discount)
     dp.register_message_handler(extend_current_rental_confirm, state=ExtendRent.confirm)
+    dp.register_callback_query_handler(extend_current_rental_finish, state=ExtendRent.finish)

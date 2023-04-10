@@ -58,3 +58,13 @@ async def gen_end_date(rent_id):
     cur.execute("SELECT date_finish FROM rent WHERE id=%s", (rent_id,))
     result = cur.fetchone()
     return result
+
+
+async def update_date(rent_id, date_finish):
+    cur.execute("UPDATE rent SET date_finish = %s WHERE id=%s", (date_finish, rent_id,))
+    db.commit()
+
+async def get_client_id(rent_id):
+    cur.execute("SELECT client FROM rent WHERE id=%s", (rent_id,))
+    result = cur.fetchone()
+    return result
