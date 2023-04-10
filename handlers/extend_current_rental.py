@@ -16,6 +16,7 @@ class ExtendRent(StatesGroup):
     discount = State()
     payment_method = State()
     confirm = State()
+    finish = State()
 
 
 async def extend_current_rental_start(call: types.CallbackQuery):
@@ -86,6 +87,7 @@ async def extend_current_rental_discount(call: types.CallbackQuery, state: FSMCo
                                          f"Input price after discount:")
             await ExtendRent.next()
     else:
+        await state.set_state(ExtendRent.confirm.state)
         async with state.proxy() as data:
             data['discount'] = 0
         rental_period = data.get('rental_period')
@@ -106,9 +108,9 @@ async def extend_current_rental_discount(call: types.CallbackQuery, state: FSMCo
                                      f"Bike model: {bike_info[1]} {bike_info[2]}\n"
                                      f"Bike plate number: {bike_info[8]}\n"
                                      f"Client name: {client_name[0]}\n"
-                                     f"New rental end date: {new_end_day}", reply_markup=inline.kb_yesno())
-
-        await state.set_state(ExtendRent.confirm.state)
+                                     f'New rental end date: {new_end_day.strftime("%d.%m.%Y")}',
+                                     reply_markup=inline.kb_yesno())
+        await ExtendRent.next()
 
 
 async def extend_current_rental_confirm(msg: types.Message, state: FSMContext):
@@ -123,6 +125,8 @@ async def extend_current_rental_confirm(msg: types.Message, state: FSMContext):
                     rental_period = 7
                 elif rental_period == '1_month':
                     rental_period = 30
+            else:
+                rental_period = int(data.get('rental_period'))
             bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
             bike_info = await db_bike.get_more_bike_info(int(bike_id[0]))
             rent_info = await db_rent.get_all_rent_info(int(bike_id[0]))
@@ -133,10 +137,45 @@ async def extend_current_rental_confirm(msg: types.Message, state: FSMContext):
                              f"Bike model: {bike_info[1]} {bike_info[2]}\n"
                              f"Bike plate number: {bike_info[8]}\n"
                              f"Client name: {client_name[0]}\n"
-                             f"New rental end date: {new_end_day}", reply_markup=inline.kb_yesno())
+                             f'New rental end date: {new_end_day.strftime("%d.%m.%Y")}',
+                             reply_markup=inline.kb_yesno())
+            await ExtendRent.next()
     else:
         await msg.delete()
         await msg.answer("Use digits only!")
+
+async def client_bot(client_tg, new_end_day):
+    bot = Bot(config("CLIENT_BOT_TOKEN"))
+
+    await bot.send_message(chat_id=client_tg[0],
+                           text=f"Your rent has been update: \n"
+                                f'New rental end date: {new_end_day.strftime("%d.%m.%Y")}')
+
+
+async def extend_current_rental_finish(call: types.CallbackQuery, state: FSMContext):
+    async with state.proxy() as data:
+        if call.data == "yes":
+            rental_period = data.get('rental_period')
+            if not rental_period.isdigit():
+                if rental_period == '1_day':
+                    rental_period = 1
+                elif rental_period == '1_week':
+                    rental_period = 7
+                elif rental_period == '1_month':
+                    rental_period = 30
+            else:
+                rental_period = int(data.get('rental_period'))
+            end_date = await db_rent.gen_end_date(int(data.get("rent_id")))
+            new_end_day = (end_date[0] + timedelta(days=rental_period))
+            await db_rent.update_date(int(data.get('rent_id')), new_end_day)
+            client_id = await db_rent.get_client_id(int(data.get('rent_id')))
+            client_tg = await db_client.get_tg_id(client_id)
+            await client_bot(client_tg, new_end_day)
+            await call.message.edit_text("You successfully extend rental!", reply_markup=inline.kb_main_menu())
+            await state.finish()
+        else:
+            await call.message.edit_text("You cancelled rent extending!", reply_markup=inline.kb_main_menu())
+            await state.finish()
 
 
 def register(dp: Dispatcher):
