@@ -1,5 +1,4 @@
 from database.postgresql import db, cur
-import asyncio
 from datetime import datetime, date
 
 

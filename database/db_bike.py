@@ -1,5 +1,4 @@
 from database.postgresql import cur, db
-import asyncio
 
 
 async def create_table():
@@ -57,12 +56,13 @@ async def create_new_bike(data):
     status = data.get('status')
     query = ("""
             INSERT INTO bike 
-                (brand, model, year, purchase_price, millage, abs_cbs, keyless, plate_no, color, gps, style, docs, exhaust, photo, status) 
+                (brand, model, year, purchase_price, millage, abs_cbs, keyless, plate_no, color, 
+                gps, style, docs, exhaust, photo, status) 
             VALUES 
                 (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """)
-    values = (
-    brand, model, year, purchase_price, millage, abs_cbs, keyless, plate_no, color, gps, style, docs, exhaust, photo, status)
+    values = (brand, model, year, purchase_price, millage, abs_cbs, keyless, plate_no,
+              color, gps, style, docs, exhaust, photo, status)
     cur.execute(query, values)
     db.commit()
 
@@ -74,11 +74,6 @@ async def db_update_bike(bike_id, data):
     values.append(bike_id)
     cur.execute(query, tuple(values))
     db.commit()
-
-    # example
-    # bike_id = 1
-    # data = {"purchase_price": 2000, "color": "red"}
-    # await update_bike_data(bike_id, data)
 
 
 async def delete_bike(bike_id):
@@ -128,7 +123,7 @@ async def change_bike_status_to_free(bike_id):
 
 
 async def update_millage(millage, bike_id):
-    query = "UPDATE bike SET millage=%s WHERE id=%s"
+    query = "UPDATE bike SET millage = %s WHERE id=%s"
     cur.execute(query, (millage, bike_id,))
     db.commit()
 

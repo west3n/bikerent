@@ -1,6 +1,7 @@
 from database.postgresql import db, cur
 
 
+
 async def create_table():
     cur.execute("""
     CREATE TABLE client (
@@ -38,23 +39,28 @@ async def get_client_contact(client_id):
     return result
 
 
+async def get_tg_id(client_id):
+    cur.execute("SELECT tg_id FROM client WHERE id=%s", (client_id,))
+    result = cur.fetchone()
+    return result
+
+
+async def get_client_name(client_id):
+    cur.execute("SELECT name FROM client WHERE id=%s", (client_id,))
+    result = cur.fetchone()
+    return result
+
+
 async def update_after_delivery(data, client_id):
     photo_id = data.get('passport_photo')
     photo_license = data.get('license_photo')
     insta = data.get('instagram_account')
     phone = data.get('phone_number')
-
-    print(insta)
-    print(phone)
-
     contact = await get_client_contact(int(client_id))
     contact = f'Info from booking: {contact[0]}\n'
-
-    print(contact)
-
     contact += f'Instagram: {insta}\n'
     contact += f'Phone number (info from deliveryman): {phone}'
 
-    cur.execute("UPDATE client SET contact=%s, photo_id=%s, photo_license=%s WHERE id=%s",
+    cur.execute("UPDATE client SET contact = %s, photo_id = %s, photo_license = %s WHERE id=%s",
                 (contact, photo_id, photo_license, client_id))
     db.commit()

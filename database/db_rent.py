@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from database.postgresql import db, cur
-from database.db_booking import status_booking, delete_booking
+from database.db_booking import status_booking
 
 
 def create_table():
@@ -23,5 +23,28 @@ async def add_new_rent(booking_id):
                 (bike_id, client_id, start_date, end_date))
     db.commit()
 
+
+async def get_all_rent(bike_id):
+    cur.execute("SELECT * FROM rent WHERE bike=%s", (bike_id,))
+    result = cur.fetchall()
+    return result
+
+
+async def get_all_rent_info(bike_id):
+    cur.execute("SELECT * FROM rent WHERE bike=%s", (bike_id,))
+    result = cur.fetchone()
+    return result
+
+
+async def get_bike_id(rent_id):
+    cur.execute("SELECT bike FROM rent WHERE id=%s", (rent_id,))
+    result = cur.fetchone()
+    return result
+
+
+async def all_rent():
+    cur.execute("SELECT * FROM rent")
+    result = cur.fetchall()
+    return result
 
 

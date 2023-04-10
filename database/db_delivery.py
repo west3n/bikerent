@@ -1,6 +1,5 @@
 from database.postgresql import db, cur
 from database.db_booking import get_client_id
-import asyncio
 
 
 async def create_table():
@@ -28,8 +27,6 @@ async def create_table():
         )
     ''')
     db.commit()
-
-
 
 
 async def add_new_delivery(data):

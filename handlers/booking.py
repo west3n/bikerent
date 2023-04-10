@@ -179,16 +179,16 @@ async def new_booking_start_step4_2(msg: types.Message, state: FSMContext):
 
 
 async def new_booking_start_step5(call: types.CallbackQuery, state: FSMContext):
-    async with state.proxy() as data:
-        if call.data == 'yes':
+    if call.data == 'yes':
+        async with state.proxy() as data:
             await call.message.edit_text(f"Price before discount - {data.get('price')}\n\n"
                                          f"Input price after discount:")
             await Booking.next()
-        else:
-            async with state.proxy() as data:
-                data['discount'] = 0
-            await call.message.edit_text("Input client name:")
-            await state.set_state(Booking.client_name.state)
+    else:
+        async with state.proxy() as data:
+            data['discount'] = 0
+        await call.message.edit_text("Input client name:")
+        await state.set_state(Booking.client_name.state)
 
 
 async def new_booking_start_step5_2(msg: types.Message, state: FSMContext):
@@ -197,12 +197,9 @@ async def new_booking_start_step5_2(msg: types.Message, state: FSMContext):
             last = int(data.get('price'))
             now = int(msg.text)
             discount = last - now
-            if discount < 0:
-                await msg.answer("Price before less than after! Try again")
-            else:
-                data.update({'price': msg.text, 'discount': discount})
-                await msg.answer("Input client name:")
-                await Booking.next()
+            data.update({'price': msg.text, 'discount': discount})
+            await msg.answer("Input client name:")
+            await Booking.next()
     else:
         await msg.answer("Use digits only!")
 
@@ -282,7 +279,7 @@ async def new_booking_finish(call: types.CallbackQuery, state: FSMContext):
         await state.set_state(Booking.booking_comment.state)
         async with state.proxy() as data:
             await add_booking(data)
-            await call.message.edit_text(f"Booking saved!\n\n{data}")
+            await call.message.edit_text(f"Booking saved!", reply_markup=inline.kb_main_menu())
             await change_bike_status_to_booking(bike_id=data.get('bike'))
             await state.finish()
 
@@ -291,7 +288,7 @@ async def new_booking_finish_with_comment(msg: types.Message, state: FSMContext)
     async with state.proxy() as data:
         data["booking_comment"] = msg.text
         await add_booking(data)
-        await msg.answer(f"Booking saved!\n\n{data}")
+        await msg.answer(f"Booking saved!", reply_markup=inline.kb_main_menu())
         await change_bike_status_to_booking(bike_id=data.get('bike'))
         await state.finish()
 
