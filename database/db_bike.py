@@ -89,6 +89,14 @@ async def get_bike_info():
     return results
 
 
+async def get_bike_booking_status():
+    status = 'booking'
+    query = "SELECT id, model, plate_no FROM bike WHERE status=%s"
+    cur.execute(query, (status, ))
+    results = cur.fetchall()
+    return results
+
+
 async def get_bike(bike_id):
     query = "SELECT id, model, plate_no FROM bike WHERE id=%s"
     values = (bike_id,)

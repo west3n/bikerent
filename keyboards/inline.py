@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
-from database.db_bike import get_bike_info, get_more_bike_info, get_bike
+from database.db_bike import get_bike_info, get_more_bike_info, get_bike, get_bike_booking_status
 from database.db_booking import check_booking
 from database.db_rent import all_rent
 
@@ -197,6 +197,19 @@ async def kb_booking_bike() -> InlineKeyboardMarkup:
     return kb
 
 
+async def kb_delivery_bike() -> InlineKeyboardMarkup:
+    bikes = await get_bike_booking_status()
+    bike_callback = CallbackData("booking", "id")
+    kb = InlineKeyboardMarkup()
+    for bike in bikes:
+        button = InlineKeyboardButton(text=f'model: {bike[1]}, plate NO: {bike[2]}',
+                                      callback_data=bike_callback.new(id=bike[0]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_main')
+    kb.add(back)
+    return kb
+
+
 def kb_month() -> InlineKeyboardMarkup:
     months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
               'August', 'September', 'October', 'November', 'December']
@@ -302,6 +315,7 @@ async def kb_all_rent() -> InlineKeyboardMarkup:
     kb.add(back)
     return kb
 
+
 def kb_confirm_qr() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Confirm', callback_data='confirm_qr')]
@@ -319,9 +333,8 @@ def kb_information() -> InlineKeyboardMarkup:
     return kb
 
 
-def kb_back()-> InlineKeyboardMarkup:
+def kb_back() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Back', callback_data='info_back')]
     ])
     return kb
-

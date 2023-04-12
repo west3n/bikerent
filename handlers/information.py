@@ -1,6 +1,5 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import StatesGroup, State
 from keyboards import inline
 from database import db_admins
 
@@ -22,7 +21,8 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
 async def main_information(call: types.CallbackQuery):
     await call.message.edit_text("Select option:", reply_markup=inline.kb_information())
 
-#async def get_rental_status(call: types.CallbackQuery):
+
+# async def get_rental_status(call: types.CallbackQuery):
 
 
 def register(dp: Dispatcher):

@@ -2,7 +2,7 @@ from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
-from database import db_admins
+from database import db_admins, db_bike
 from database.db_booking import check_booking, get_client_id, get_booking_data_by_client_id
 from keyboards import inline
 from handlers.qr_generation import generate_qr
@@ -53,6 +53,7 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
         elif user_status[0] == "deliveryman":
             await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
 
+
 async def confirm_qr(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await call.message.delete()
@@ -69,8 +70,12 @@ async def confirm_qr(call: types.CallbackQuery, state: FSMContext):
 
 
 async def delivery_bike(call: types.CallbackQuery):
-    await call.message.edit_text("Select bike:", reply_markup=await inline.kb_booking_bike())
-    await Delivery.bike_id.set()
+    bikes = await db_bike.get_bike_booking_status()
+    if not bikes:
+        await call.message.edit_text("There's no bookings to delivery!", reply_markup=inline.kb_main_menu())
+    else:
+        await call.message.edit_text("Select bike:", reply_markup=await inline.kb_delivery_bike())
+        await Delivery.bike_id.set()
 
 
 async def delivery_booking(call: types.CallbackQuery, state: FSMContext):
@@ -89,7 +94,7 @@ async def delivery_booking(call: types.CallbackQuery, state: FSMContext):
 async def delivery_millage(call: types.CallbackQuery, state: FSMContext):
     if call.data == "back":
         await state.finish()
-        await call.message.edit_text("Select bike:", reply_markup=await inline.kb_booking_bike())
+        await call.message.edit_text("Select bike:", reply_markup=await inline.kb_delivery_bike())
         await Delivery.bike_id.set()
     else:
         async with state.proxy() as data:
@@ -308,13 +313,22 @@ async def delivery_passport_photo(msg: types.Message, state: FSMContext):
     await Delivery.next()
 
 
-async def delivery_license_photo(msg: types.Message, state: FSMContext):
+async def delivery_license_existing(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
         photo_bytes = file.read()
         data['passport_photo'] = photo_bytes
-    await msg.answer("Make photo of LICENSE and send to bot:")
-    await Delivery.next()
+    await msg.answer("Do you want to add LICENSE photo?", reply_markup=inline.kb_yesno())
+
+
+async def delivery_license_photo(call: types.CallbackQuery, state: FSMContext):
+    if call.data == "yes":
+        await call.message.edit_text("Make photo of LICENSE and send to bot:")
+        await Delivery.next()
+    else:
+        await state.set_state(Delivery.license_photo.state)
+        await call.message.edit_text("Make photo of CLIENT WITH PASSPORT and send to bot:")
+        await Delivery.next()
 
 
 async def delivery_client_with_passport_photo(msg: types.Message, state: FSMContext):
@@ -405,7 +419,8 @@ def register(dp: Dispatcher):
     dp.register_callback_query_handler(delivery_add_photo_8_callback_handler, state=Delivery.add_photo_7)
     dp.register_message_handler(delivery_passport_number, content_types=['photo'], state=Delivery.add_photo_8)
     dp.register_message_handler(delivery_passport_photo, state=Delivery.passport_number)
-    dp.register_message_handler(delivery_license_photo, content_types=['photo'], state=Delivery.passport_photo)
+    dp.register_message_handler(delivery_license_existing, content_types=['photo'], state=Delivery.passport_photo)
+    dp.register_callback_query_handler(delivery_license_photo, state=Delivery.passport_photo)
     dp.register_message_handler(delivery_client_with_passport_photo, content_types=['photo'],
                                 state=Delivery.license_photo)
     dp.register_message_handler(delivery_instagram_account, content_types=['photo'],
