@@ -147,8 +147,11 @@ async def finish_rent(call: types.CallbackQuery, state: FSMContext):
             client_tg = await db_client.get_tg_id(int(rent_info[2]))
             client_id = int(rent_info[2])
             await client_bot(client_tg, data, client_id)
-            await state.finish()
             await db_rent.finish_rent(int(data.get('rent_id')))
+            print(bike_id[0])
+
+            await db_bike.change_bike_status_to_booking(bike_id[0])
+            await state.finish()
     else:
         await call.message.edit_text("You cancelled rent finishing!", reply_markup=inline.kb_main_menu())
         await state.finish()

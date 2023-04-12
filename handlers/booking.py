@@ -83,7 +83,7 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
             await call.message.edit_text(f'Bike status: Free\n'
                                          f'\nSelect start date:\n\nMonth:',
                                          reply_markup=inline.kb_month())
-    if bike_status[0] == 'rent':
+    elif bike_status[0] == 'rent':
         bookings = await check_booking(bike_id=data.get('bike'))
         rents = await get_all_rent(bike_id=data.get('bike'))
         if bookings != [] and rents != []:
@@ -114,7 +114,7 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
                                              f'{y}\n'
                                              f'\nSelect start date:\n\nMonth:',
                                              reply_markup=inline.kb_month())
-            if bookings:
+            elif bookings:
                 x = '<b>Booking</b>\n'
                 for booking in bookings:
                     start_date = booking[2].strftime("%d.%m.%Y")
@@ -328,19 +328,68 @@ async def new_booking_finish(call: types.CallbackQuery, state: FSMContext):
     else:
         await state.set_state(Booking.booking_comment.state)
         async with state.proxy() as data:
-            await add_booking(data)
-            await call.message.edit_text(f"Booking saved!", reply_markup=inline.kb_main_menu())
-            await change_bike_status_to_booking(bike_id=data.get('bike'))
-            await state.finish()
+
+            rental_period = data.get("rental_period")
+            if rental_period == "1_day":
+                rent_period = 1
+            elif rental_period == '1_week':
+                rent_period = 7
+            elif rental_period == "1_month":
+                rent_period = 30
+            else:
+                rent_period = data.get('rental_period')
+            date_str = data.get('start_day')
+            date_parts = date_str.split('_')[1:]
+            year = datetime.now().year
+            month, day = map(int, date_parts)
+            date_obj = date(year, month, day)
+            delivery_time = data.get('delivery_time')
+            time_obj = datetime.strptime(delivery_time, '%H:%M').time()
+            datetime_obj = datetime.combine(date_obj, time_obj)
+            formatted_datetime = datetime_obj.strftime('%d.%m.%Y %H:%M')
+            await call.message.answer(f"Check text and confirm:\n\n"
+                                      f"Client: {data.get('client_name')}, {data.get('client_contact')}\n"
+                                      f"Address: {data.get('address')}\n"
+                                      f"Delivery date: {formatted_datetime}\n"
+                                      f"Rent period: {rent_period} days\n"
+                                      f"Rent price: {data.get('price')}\n"
+                                      f"Delivery price: {data.get('delivery_price')}\n", reply_markup=inline.kb_yesno())
+            bike_status = await get_bike_status(bike_id=data.get('bike'))
+            await Booking.next()
 
 
 async def new_booking_finish_with_comment(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data["booking_comment"] = msg.text
-        await add_booking(data)
-        await msg.answer(f"Booking saved!", reply_markup=inline.kb_main_menu())
-        await change_bike_status_to_booking(bike_id=data.get('bike'))
-        await state.finish()
+
+        rental_period = data.get("rental_period")
+        if rental_period == "1_day":
+            rent_period = 1
+        elif rental_period == '1_week':
+            rent_period = 7
+        elif rental_period == "1_month":
+            rent_period = 30
+        else:
+            rent_period = data.get('rental_period')
+        date_str = data.get('start_day')
+        date_parts = date_str.split('_')[1:]
+        year = datetime.now().year
+        month, day = map(int, date_parts)
+        date_obj = date(year, month, day)
+        delivery_time = data.get('delivery_time')
+        time_obj = datetime.strptime(delivery_time, '%H:%M').time()
+        datetime_obj = datetime.combine(date_obj, time_obj)
+        formatted_datetime = datetime_obj.strftime('%d.%m.%Y %H:%M')
+        await msg.answer(f"Check text and confirm:\n\n"
+                         f"Client: {data.get('client_name')}, {data.get('client_contact')}\n"
+                         f"Address: {data.get('address')}\n"
+                         f"Delivery date: {formatted_datetime}\n"
+                         f"Rent period: {rent_period} days\n"
+                         f"Rent price: {data.get('price')}\n"
+                         f"Delivery price: {data.get('delivery_price')}\n"
+                         f"Comment for deliveryman: {data.get('booking_comment')}", reply_markup=inline.kb_yesno())
+
+        await Booking.next()
 
 
 async def new_booking_send_to_group(call: types.CallbackQuery, state: FSMContext):

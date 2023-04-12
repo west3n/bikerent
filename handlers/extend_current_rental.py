@@ -175,6 +175,17 @@ async def extend_current_rental_finish(call: types.CallbackQuery, state: FSMCont
             group_id = decouple.config("GROUP_ID")
             await client_bot(client_tg, new_end_day)
             await call.message.edit_text("You successfully extend rental!", reply_markup=inline.kb_main_menu())
+            bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
+            bike_info = await db_bike.get_more_bike_info(int(bike_id[0]))
+            rent_info = await db_rent.get_all_rent_info(int(bike_id[0]))
+            client_name = await db_client.get_client_name(int(rent_info[2]))
+            end_date = await db_rent.gen_end_date(int(data.get("rent_id")))
+            await call.bot.send_message(chat_id=group_id,
+                                        text=f"Rent has been updated:\n\n"
+                                             f"Bike model: {bike_info[1]} {bike_info[2]}\n"
+                                             f"Bike plate number: {bike_info[8]}\n"
+                                             f"Client name: {client_name[0]}\n"
+                                             f'New rental end date: {end_date[0].strftime("%d.%m.%Y")}')
             await state.finish()
         else:
             await call.message.edit_text("You cancelled rent extending!", reply_markup=inline.kb_main_menu())

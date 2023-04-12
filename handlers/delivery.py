@@ -393,6 +393,35 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
             reply_markup=inline.kb_confirm_qr())
         await add_new_rent(booking_id)
 
+        group_id = decouple.config("GROUP_ID")
+        photo_keys = ['leftside_photo', 'rightside_photo', 'frontside_photo', 'backside_photo', 'passport_photo',
+                      'license_photo', 'client_with_passport_photo']
+        photo_group = []
+        for key in photo_keys:
+            photo_data = data.get(key)
+            if photo_data:
+                photo_group.append(InputMediaPhoto(io.BytesIO(photo_data)))
+        media_group = await call.bot.send_media_group(chat_id=group_id,
+                                                      media=photo_group)
+        if data.get('add_photo'):
+            add_photos = []
+            add_photo1 = io.BytesIO(data.get('add_photo'))
+            add_photos.append(InputMediaPhoto(add_photo1))
+            for i in range(2, 9):
+                photo_data = data.get(f'add_photo_{i}')
+                if photo_data:
+                    add_photos.append(InputMediaPhoto(io.BytesIO(photo_data)))
+            await call.bot.send_media_group(chat_id=group_id,
+                                            media=add_photos)
+        await call.bot.send_message(chat_id=group_id,
+                                    text=f'New delivery:\n\n'
+                                         f'Bike ID: {data.get("bike_id")}\n'
+                                         f'Client passport: {data.get("passport_number")}\n'
+                                         f'Client Instagram: {data.get("instagram_account")}\n'
+                                         f'Client Phone: {data.get("phone_number")}\n'
+                                         f'Payment method: {data.get("payment_method")}',
+                                    reply_to_message_id=media_group[0].message_id)
+
 
 def register(dp: Dispatcher):
     dp.register_callback_query_handler(back_button, text='back_main', state='*')

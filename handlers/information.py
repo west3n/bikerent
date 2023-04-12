@@ -4,8 +4,8 @@ from datetime import timedelta
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from keyboards import inline
-from database import db_admins
-
+from database import db_admins, db_bike, db_rent, db_client, db_booking
+from google_json import sheets
 
 
 async def back_button(call: types.CallbackQuery, state: FSMContext):
@@ -89,4 +89,10 @@ async def rent_bikes(call: types.CallbackQuery):
 
 def register(dp: Dispatcher):
     dp.register_callback_query_handler(back_button, text='back_main', state='*')
-    dp.register_callback_query_handler(main_information, text='information')
+    dp.register_callback_query_handler(main_information, text=['information', 'info_back_1', 'back'])
+    dp.register_callback_query_handler(all_bikes, text=['check_bike_price', 'info_back_2'])
+    dp.register_callback_query_handler(bike_prices, lambda c: c.data.startswith('delete_bike'))
+    dp.register_callback_query_handler(free_bikes, text='check_available_bikes')
+    dp.register_callback_query_handler(rent_booking_bikes, text=['check_rental_status', 'info_back'])
+    dp.register_callback_query_handler(booking_bikes, text='info_booking')
+    dp.register_callback_query_handler(rent_bikes, text="info_rent")

@@ -333,7 +333,7 @@ def kb_information() -> InlineKeyboardMarkup:
     return kb
 
 
-def kb_back() -> InlineKeyboardMarkup:
+def kb_info_back() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Back', callback_data='info_back')]
     ])
