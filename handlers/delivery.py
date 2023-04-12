@@ -1,9 +1,13 @@
+import io
+
+import decouple
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
+from aiogram.types import InputMediaPhoto
 
 from database import db_admins, db_bike
-from database.db_booking import check_booking, get_client_id, get_booking_data_by_client_id
+from database.db_booking import check_booking, get_client_id
 from keyboards import inline
 from handlers.qr_generation import generate_qr
 from database.db_delivery import add_new_delivery
@@ -72,7 +76,7 @@ async def confirm_qr(call: types.CallbackQuery, state: FSMContext):
 async def delivery_bike(call: types.CallbackQuery):
     bikes = await db_bike.get_bike_booking_status()
     if not bikes:
-        await call.message.edit_text("There's no bookings to delivery!", reply_markup=inline.kb_main_menu())
+        await call.message.edit_text("There's no bookings to deliver!", reply_markup=inline.kb_main_menu())
     else:
         await call.message.edit_text("Select bike:", reply_markup=await inline.kb_delivery_bike())
         await Delivery.bike_id.set()
@@ -381,7 +385,6 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
         client_id = await get_client_id(booking_id)
         client_id = client_id[0]
         await update_after_delivery(data, client_id)
-        booking_data = await get_booking_data_by_client_id(client_id)
         img_buffer = await generate_qr(client_id)
         await call.message.bot.send_photo(
             call.message.chat.id,

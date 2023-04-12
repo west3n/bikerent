@@ -92,7 +92,15 @@ async def get_bike_info():
 async def get_bike_booking_status():
     status = 'booking'
     query = "SELECT id, model, plate_no FROM bike WHERE status=%s"
-    cur.execute(query, (status, ))
+    cur.execute(query, (status,))
+    results = cur.fetchall()
+    return results
+
+
+async def get_bike_free_status():
+    status = 'free'
+    query = "SELECT id, model, plate_no FROM bike WHERE status=%s"
+    cur.execute(query, (status,))
     results = cur.fetchall()
     return results
 
@@ -149,3 +157,9 @@ async def get_millage(bike_id):
     cur.execute(query, (bike_id,))
     result = cur.fetchone()
     return result[0]
+
+
+async def get_all_bikes():
+    cur.execute("SELECT * FROM bike")
+    result = cur.fetchall()
+    return result

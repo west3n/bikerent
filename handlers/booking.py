@@ -1,7 +1,8 @@
 import calendar
 import re
-from datetime import timedelta
+from datetime import timedelta, datetime, date
 
+import decouple
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
@@ -31,6 +32,7 @@ class Booking(StatesGroup):
     delivery_time = State()
     delivery_price = State()
     booking_comment = State()
+    send_to_group = State()
 
 
 class CancelBooking(StatesGroup):
@@ -341,6 +343,50 @@ async def new_booking_finish_with_comment(msg: types.Message, state: FSMContext)
         await state.finish()
 
 
+async def new_booking_send_to_group(call: types.CallbackQuery, state: FSMContext):
+    if call.data == "yes":
+        async with state.proxy() as data:
+            await add_booking(data)
+            group_id = decouple.config("GROUP_ID")
+            bike_status = await get_bike_status(bike_id=data.get('bike'))
+            if bike_status[0] == 'free':
+                await change_bike_status_to_booking(bike_id=data.get('bike'))
+            date_str = data.get('start_day')
+            date_parts = date_str.split('_')[1:]
+            year = datetime.now().year
+            month, day = map(int, date_parts)
+            date_obj = date(year, month, day)
+            delivery_time = data.get('delivery_time')
+            time_obj = datetime.strptime(delivery_time, '%H:%M').time()
+            datetime_obj = datetime.combine(date_obj, time_obj)
+            formatted_datetime = datetime_obj.strftime('%d.%m.%Y %H:%M')
+            rental_period = data.get("rental_period")
+            if rental_period == "1_day":
+                rent_period = 1
+            elif rental_period == '1_week':
+                rent_period = 7
+            elif rental_period == "1_month":
+                rent_period = 30
+            else:
+                rent_period = data.get('rental_period')
+            await call.bot.send_message(chat_id=group_id,
+                                        text=f"Hello managers! Please make new delivery:\n\n"
+                                             f"Client: {data.get('client_name')}, {data.get('client_contact')}\n"
+                                             f"Address: {data.get('address')}\n"
+                                             f"Delivery date: {formatted_datetime}\n"
+                                             f"Rent period: {rent_period} days\n"
+                                             f"Rent price: {data.get('price')}\n"
+                                             f"Delivery price: {data.get('delivery_price')}\n"
+                                             f"Comment for deliveryman: {data.get('booking_comment')}")
+            await call.message.edit_text("Booking successfully saved and sent to group!",
+                                         reply_markup=inline.kb_main_menu())
+            await state.finish()
+    else:
+        await call.message.edit_text("You cancelled new booking confirmation!",
+                                     reply_markup=inline.kb_main_menu())
+        await state.finish()
+
+
 async def cancel_booking(call: types.CallbackQuery):
     await call.message.edit_text("Select bike for cancellation:", reply_markup=await inline.kb_booking_bike())
     await CancelBooking.bike.set()
@@ -406,6 +452,7 @@ def register(dp: Dispatcher):
     dp.register_message_handler(new_booking_comment, state=Booking.delivery_price)
     dp.register_callback_query_handler(new_booking_finish, state=Booking.booking_comment)
     dp.register_message_handler(new_booking_finish_with_comment, state=Booking.booking_comment)
+    dp.register_callback_query_handler(new_booking_send_to_group, state=Booking.send_to_group)
     dp.register_callback_query_handler(cancel_booking, text='cancel_booking')
     dp.register_callback_query_handler(cancel_booking_selection, state=CancelBooking.bike)
     dp.register_callback_query_handler(cancel_booking_confirmation, state=CancelBooking.confirm)

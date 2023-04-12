@@ -338,3 +338,26 @@ def kb_back() -> InlineKeyboardMarkup:
         [InlineKeyboardButton('Back', callback_data='info_back')]
     ])
     return kb
+
+
+def kb_info_back_1() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Back', callback_data='info_back_1')]
+    ])
+    return kb
+
+
+def kb_info_back_2() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Back', callback_data='info_back_2')]
+    ])
+    return kb
+
+
+def booking_rent() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Booking', callback_data='info_booking')],
+        [InlineKeyboardButton('Rent', callback_data='info_rent')],
+        [InlineKeyboardButton('Back', callback_data='info_back_1')]
+    ])
+    return kb

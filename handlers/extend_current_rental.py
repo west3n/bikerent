@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import decouple
 from aiogram import Dispatcher, types, Bot
 from decouple import config
 from aiogram.dispatcher import FSMContext
@@ -148,11 +149,9 @@ async def extend_current_rental_confirm(msg: types.Message, state: FSMContext):
 
 async def client_bot(client_tg, new_end_day):
     bot = Bot(config("CLIENT_BOT_TOKEN"))
-
     await bot.send_message(chat_id=client_tg[0],
                            text=f"Your rent has been update: \n"
                                 f'New rental end date: {new_end_day.strftime("%d.%m.%Y")}')
-
 
 
 async def extend_current_rental_finish(call: types.CallbackQuery, state: FSMContext):
@@ -173,6 +172,7 @@ async def extend_current_rental_finish(call: types.CallbackQuery, state: FSMCont
             await db_rent.update_date(int(data.get('rent_id')), new_end_day)
             client_id = await db_rent.get_client_id(int(data.get('rent_id')))
             client_tg = await db_client.get_tg_id(client_id)
+            group_id = decouple.config("GROUP_ID")
             await client_bot(client_tg, new_end_day)
             await call.message.edit_text("You successfully extend rental!", reply_markup=inline.kb_main_menu())
             await state.finish()

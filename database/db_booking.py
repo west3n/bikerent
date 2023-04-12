@@ -88,3 +88,9 @@ async def get_booking_data_by_client_id(client_id):
     cur.execute("SELECT * FROM booking WHERE client=%s", (client_id,))
     result = cur.fetchall()
     return result
+
+
+async def all_bookings():
+    cur.execute("SELECT * FROM booking")
+    result = cur.fetchall()
+    return result
