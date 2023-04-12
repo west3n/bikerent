@@ -116,6 +116,7 @@ async def client_bot(client_tg, data, client_id):
     await db_client.update_after_finish_rent(client_id)
 
 
+
 async def finish_rent_confirm(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         if msg.text:

@@ -154,6 +154,7 @@ async def client_bot(client_tg, new_end_day):
                                 f'New rental end date: {new_end_day.strftime("%d.%m.%Y")}')
 
 
+
 async def extend_current_rental_finish(call: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         if call.data == "yes":
