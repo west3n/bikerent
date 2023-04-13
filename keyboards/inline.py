@@ -5,7 +5,7 @@ from aiogram.utils.callback_data import CallbackData
 from database.db_bike import get_bike_info, get_more_bike_info, get_bike, get_bike_booking_status
 from database.db_booking import check_booking
 from database.db_rent import all_rent
-
+from database.db_service import get_all_service
 
 
 def start_superuser() -> InlineKeyboardMarkup:

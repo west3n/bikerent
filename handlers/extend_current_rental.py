@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import aiohttp
 import decouple
 from aiogram import Dispatcher, types, Bot
 from decouple import config
@@ -149,9 +150,11 @@ async def extend_current_rental_confirm(msg: types.Message, state: FSMContext):
 
 async def client_bot(client_tg, new_end_day):
     bot = Bot(config("CLIENT_BOT_TOKEN"))
-    await bot.send_message(chat_id=client_tg[0],
-                           text=f"Your rent has been update: \n"
-                                f'New rental end date: {new_end_day.strftime("%d.%m.%Y")}')
+    async with aiohttp.ClientSession() as session:
+        await bot.send_message(chat_id=client_tg[0],
+                               text=f"Your rent has been update: \n"
+                                    f'New rental end date: {new_end_day.strftime("%d.%m.%Y")}')
+        session.closed
 
 
 async def extend_current_rental_finish(call: types.CallbackQuery, state: FSMContext):

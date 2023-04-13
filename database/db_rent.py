@@ -69,3 +69,9 @@ async def get_client_id(rent_id):
     cur.execute("SELECT client FROM rent WHERE id=%s", (rent_id,))
     result = cur.fetchone()
     return result
+
+
+async def get_client_id_by_bike(bike_id):
+    cur.execute("SELECT client FROM rent WHERE bike=%s", (bike_id,))
+    result = cur.fetchone()
+    return result

@@ -174,7 +174,8 @@ async def add_new_bike_step12(msg: types.Message, state: FSMContext):
 async def add_new_bike_finish(call: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['status'] = call.data
-    await create_new_bike(data)
+    bike_id = await create_new_bike(data)
+    await db_service.insert_oil_service_table(bike_id)
     await call.message.edit_text("New bike data successfully saved!\n\nDo you want to add another bike?",
                                  reply_markup=inline.kb_yesno())
     await NewBike.next()

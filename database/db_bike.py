@@ -60,11 +60,14 @@ async def create_new_bike(data):
                 gps, style, docs, exhaust, photo, status) 
             VALUES 
                 (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
             """)
     values = (brand, model, year, purchase_price, millage, abs_cbs, keyless, plate_no,
               color, gps, style, docs, exhaust, photo, status)
     cur.execute(query, values)
+    result = cur.fetchone()[0]
     db.commit()
+    return result
 
 
 async def db_update_bike(bike_id, data):

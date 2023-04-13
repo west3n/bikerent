@@ -1,3 +1,4 @@
+import aiohttp
 from aiogram import Dispatcher, types, Bot
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
@@ -111,10 +112,13 @@ async def client_bot(client_tg, data, client_id):
     bot = Bot(config("CLIENT_BOT_TOKEN"))
     extra_cost = data.get('extra_cost_amount') if data.get('extra_cost_amount') else 0
     comment = data.get('extra_cost_comment') if data.get('extra_cost_comment') else "No comments"
-    await bot.send_message(chat_id=client_tg[0],
-                           text=f"Your rent finished!\n\n"
-                                f"Extra cost: {extra_cost}\n"
-                                f"Comment: {comment}")
+    async with aiohttp.ClientSession() as session:
+        await bot.send_message(chat_id=client_tg[0],
+                               text=f"Your rent finished!\n\n"
+                                    f"Extra cost: {extra_cost}\n"
+                                    f"Comment: {comment}")
+        session.closed
+
     await db_client.update_after_finish_rent(client_id)
 
 
