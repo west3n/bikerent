@@ -1,8 +1,10 @@
 from aiogram import Dispatcher, types, Bot
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
-from database import db_bike, db_rent, db_client
+from database import db_bike, db_rent, db_client, db_service
 from decouple import config
+
+from handlers import bike_service
 from keyboards import inline
 
 
@@ -116,7 +118,6 @@ async def client_bot(client_tg, data, client_id):
     await db_client.update_after_finish_rent(client_id)
 
 
-
 async def finish_rent_confirm(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         if msg.text:
@@ -141,6 +142,12 @@ async def finish_rent(call: types.CallbackQuery, state: FSMContext):
     if call.data == "yes":
         async with state.proxy() as data:
             bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
+            oil_service_data = await db_service.take_data_from_oil_service(int(data.get('bike_id')))
+            oil_need_change = oil_service_data[0]
+            last_oil_change_millage = oil_service_data[1]
+            new_mileage = int(data.get('mileage'))
+            await bike_service.check_oil_change(int(data.get('bike_id')), oil_need_change,
+                                                last_oil_change_millage, new_mileage)
             await db_bike.update_millage(int(data.get('mileage')), bike_id[0])
             await call.message.edit_text("You successfully finish rent!", reply_markup=inline.kb_main_menu())
             rent_info = await db_rent.get_all_rent_info(int(bike_id[0]))

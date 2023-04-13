@@ -5,6 +5,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from keyboards import inline
 from database.db_bike import create_new_bike, delete_bike, get_photo, db_update_bike
+from database import db_service
 
 
 class NewBike(StatesGroup):
@@ -73,7 +74,7 @@ async def add_new_bike_step3_v1(msg: types.Message, state: FSMContext):
             data['year'] = msg.text
         await msg.answer("Input bike purchase price:")
         await NewBike.next()
-    else: 
+    else:
         await msg.delete()
         await msg.answer("Use digits only!")
 
@@ -155,7 +156,6 @@ async def add_new_bike_step11(call: types.CallbackQuery, state: FSMContext):
 
 
 async def add_new_bike_step11_2(call: types.CallbackQuery, state: FSMContext):
-    print(call.data)
     async with state.proxy() as data:
         data['exhaust'] = call.data
     await call.message.edit_text("Send one image of bike")

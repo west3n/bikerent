@@ -6,9 +6,10 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import InputMediaPhoto
 
-from database import db_admins, db_bike
+from database import db_admins, db_bike, db_service
 from database.db_booking import check_booking, get_client_id
 from keyboards import inline
+from handlers import bike_service
 from handlers.qr_generation import generate_qr
 from database.db_delivery import add_new_delivery
 from database.db_client import update_after_delivery
@@ -116,8 +117,6 @@ async def delivery_leftside(msg: types.Message, state: FSMContext):
             millage = await get_millage(bike_id=int(data.get('bike_id')))
             if int(msg.text) >= millage:
                 data["bike_millage"] = msg.text
-                await update_millage(millage=int(data.get('bike_millage')),
-                                     bike_id=int(data.get('bike_id')))
                 await msg.answer("Make photo of LEFT side and send to bot:")
                 await Delivery.next()
             else:
@@ -391,8 +390,14 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
             photo=img_buffer,
             caption='Show this QR to client',
             reply_markup=inline.kb_confirm_qr())
+        await update_millage(int(data.get('bike_millage')), int(data.get('bike_id')))
+        oil_service_data = await db_service.take_data_from_oil_service(int(data.get('bike_id')))
+        oil_need_change = oil_service_data[0]
+        last_oil_change_millage = oil_service_data[1]
+        new_mileage = int(data.get('bike_millage'))
+        await bike_service.check_oil_change(int(data.get('bike_id')), oil_need_change,
+                                            last_oil_change_millage, new_mileage)
         await add_new_rent(booking_id)
-
         group_id = decouple.config("GROUP_ID")
         photo_keys = ['leftside_photo', 'rightside_photo', 'frontside_photo', 'backside_photo', 'passport_photo',
                       'license_photo', 'client_with_passport_photo']
@@ -421,6 +426,7 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
                                          f'Client Phone: {data.get("phone_number")}\n'
                                          f'Payment method: {data.get("payment_method")}',
                                     reply_to_message_id=media_group[0].message_id)
+        await state.finish()
 
 
 def register(dp: Dispatcher):

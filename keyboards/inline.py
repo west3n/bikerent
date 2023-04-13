@@ -7,6 +7,7 @@ from database.db_booking import check_booking
 from database.db_rent import all_rent
 
 
+
 def start_superuser() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Information', callback_data='information')],
@@ -361,3 +362,52 @@ def booking_rent() -> InlineKeyboardMarkup:
         [InlineKeyboardButton('Back', callback_data='info_back_1')]
     ])
     return kb
+
+
+def kb_current_services() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Create new task', callback_data='create_new_task')],
+        [InlineKeyboardButton('Check service status', callback_data='check_service_status')],
+        [InlineKeyboardButton('Back', callback_data='back_main')]
+    ])
+    return kb
+
+
+async def kb_all_service() -> InlineKeyboardMarkup:
+    services = await get_all_service()
+    services_callback = CallbackData("service_distrib", "id", "status")
+    kb = InlineKeyboardMarkup()
+    for service in services:
+        bike = await get_bike(service[1])
+        button = InlineKeyboardButton(text=f"ID {service[0]} - Bike: {bike[2]}: {service[2].capitalize()}",
+                                      callback_data=services_callback.new(id=service[0], status=service[2]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_service')
+    kb.add(back)
+    return kb
+
+
+async def kb_service_bike() -> InlineKeyboardMarkup:
+    bikes = await get_bike_info()
+    bike_callback = CallbackData("service_bike", "id")
+    kb = InlineKeyboardMarkup()
+    for bike in bikes:
+        button = InlineKeyboardButton(text=f'model: {bike[1]}, plate NO: {bike[2]}',
+                                      callback_data=bike_callback.new(id=bike[0]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_service')
+    kb.add(back)
+    return kb
+
+
+def kb_task_list() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Brakes', callback_data='brakes_task')],
+        [InlineKeyboardButton('Filters', callback_data='filters_task')],
+        [InlineKeyboardButton('Wash', callback_data='wash_task')],
+        [InlineKeyboardButton('Repair', callback_data='repair_task')],
+        [InlineKeyboardButton('Other', callback_data='other_task')],
+        [InlineKeyboardButton('Back', callback_data='back_task')]
+    ])
+    return kb
+
