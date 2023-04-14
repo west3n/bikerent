@@ -1,6 +1,8 @@
 import asyncio
+import io
 from datetime import timedelta
 
+from aiogram.utils.exceptions import BadRequest
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from keyboards import inline
@@ -9,17 +11,33 @@ from google_json import sheets
 
 
 async def back_button(call: types.CallbackQuery, state: FSMContext):
-    await state.finish()
-    name = call.from_user.first_name
-    tg_id = call.from_user.id
-    user_status = await db_admins.check_status(tg_id)
-    if user_status:
-        if user_status[0] == "superuser":
-            await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
-        elif user_status[0] == "manager":
-            await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
-        elif user_status[0] == "deliveryman":
-            await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+    try:
+        await state.finish()
+        name = call.from_user.first_name
+        tg_id = call.from_user.id
+        user_status = await db_admins.check_status(tg_id)
+        if user_status:
+            if user_status[0] == "superuser":
+                await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "manager":
+                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
+            elif user_status[0] == "deliveryman":
+                await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+    except BadRequest:
+        await state.finish()
+        name = call.from_user.first_name
+        tg_id = call.from_user.id
+        user_status = await db_admins.check_status(tg_id)
+        if user_status:
+            if user_status[0] == "superuser":
+                await call.message.delete()
+                await call.message.answer(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "manager":
+                await call.message.delete()
+                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_manager())
+            elif user_status[0] == "deliveryman":
+                await call.message.delete()
+                await call.message.answer(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
 
 
 async def all_bikes(call: types.CallbackQuery):
@@ -87,12 +105,28 @@ async def rent_bikes(call: types.CallbackQuery):
     await call.message.edit_text(f'{rent_str}', reply_markup=inline.kb_info_back())
 
 
+async def create_new_post(call: types.CallbackQuery):
+    await call.message.edit_text("Select bike for upload its description:",
+                                 reply_markup=await inline.kb_description_bike())
+
+
+async def get_description(call: types.CallbackQuery):
+    bike_id = int(call.data.split(":")[1])
+    bike_photo = await db_bike.get_photo(bike_id)
+    photo_io = io.BytesIO(bike_photo[0])
+    description = await db_bike.get_bike_description(bike_id)
+    await call.message.answer_photo(photo_io, description[0], reply_markup=inline.kb_main_menu())
+
+
 def register(dp: Dispatcher):
     dp.register_callback_query_handler(back_button, text='back_main', state='*')
-    dp.register_callback_query_handler(main_information, text=['information', 'info_back_1', 'back'])
+    dp.register_callback_query_handler(main_information,
+                                       text=['information', 'info_back_1', 'back', 'back_description'])
     dp.register_callback_query_handler(all_bikes, text=['check_bike_price', 'info_back_2'])
     dp.register_callback_query_handler(bike_prices, lambda c: c.data.startswith('delete_bike'))
     dp.register_callback_query_handler(free_bikes, text='check_available_bikes')
     dp.register_callback_query_handler(rent_booking_bikes, text=['check_rental_status', 'info_back'])
     dp.register_callback_query_handler(booking_bikes, text='info_booking')
     dp.register_callback_query_handler(rent_bikes, text="info_rent")
+    dp.register_callback_query_handler(create_new_post, text="create_new_post")
+    dp.register_callback_query_handler(get_description, lambda c: c.data.startswith("description"))

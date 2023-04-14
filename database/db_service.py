@@ -19,9 +19,9 @@ async def create_oil_service_table():
     db.commit()
 
 
-async def insert_oil_service_table():
+async def insert_oil_service_table(bike_id):
     cur.execute(f"INSERT INTO oil_services (bike_id, last_oil_change_mileage) "
-                f"SELECT id, millage FROM bike")
+                f"SELECT id, millage FROM bike WHERE id=%s", (bike_id, ))
     db.commit()
 
 

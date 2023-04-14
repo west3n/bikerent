@@ -3,9 +3,12 @@ import io
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
+from aiogram.utils.exceptions import BadRequest
+
 from keyboards import inline
-from database.db_bike import create_new_bike, delete_bike, get_photo, db_update_bike
-from database import db_service
+from database.db_bike import create_new_bike, delete_bike, get_photo, db_update_bike, get_more_bike_info, new_description
+from database import db_service, db_admins
+from google_json import sheets
 
 
 class NewBike(StatesGroup):
@@ -40,9 +43,43 @@ class UpdateBike(StatesGroup):
     new_parameter = State()
 
 
-async def back_button(call: types.CallbackQuery):
-    name = call.from_user.first_name
-    await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+class BikeDescription(StatesGroup):
+    bike_id = State()
+    title = State()
+    power = State()
+    description = State()
+    other = State()
+    confirm = State()
+
+
+async def back_button(call: types.CallbackQuery, state: FSMContext):
+    try:
+        await state.finish()
+        name = call.from_user.first_name
+        tg_id = call.from_user.id
+        user_status = await db_admins.check_status(tg_id)
+        if user_status:
+            if user_status[0] == "superuser":
+                await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "manager":
+                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
+            elif user_status[0] == "deliveryman":
+                await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+    except BadRequest:
+        await state.finish()
+        name = call.from_user.first_name
+        tg_id = call.from_user.id
+        user_status = await db_admins.check_status(tg_id)
+        if user_status:
+            if user_status[0] == "superuser":
+                await call.message.delete()
+                await call.message.answer(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "manager":
+                await call.message.delete()
+                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_manager())
+            elif user_status[0] == "deliveryman":
+                await call.message.delete()
+                await call.message.answer(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
 
 
 async def bike_settings(call: types.CallbackQuery):
@@ -324,6 +361,93 @@ async def update_bike_step4_call(call: types.CallbackQuery, state: FSMContext):
         await UpdateBike.pick.set()
 
 
+async def change_bike_description(call: types.CallbackQuery):
+    await call.message.edit_text("Select bike which description you want to change:",
+                                 reply_markup=await inline.kb_delete_bike())
+    await BikeDescription.bike_id.set()
+
+
+async def change_bike_description_title(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'back':
+        await state.finish()
+        await call.message.edit_text("Select one option:", reply_markup=inline.kb_bike_settings())
+    else:
+        async with state.proxy() as data:
+            data["bike_id"] = call.data.split(":")[1]
+        await call.message.edit_text("Input description title\n(e.g. Street bike (have mirrors):")
+        await BikeDescription.next()
+
+
+async def change_bike_description_power(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data["title"] = msg.text
+    await msg.answer("Input bike power\n(e.g. 250сс/2 cylinder/36 Horse power:")
+    await BikeDescription.next()
+
+
+async def change_bike_description_main(msg: types.Message, state: FSMContext):
+    if msg.text.count('/') != 2:
+        await msg.delete()
+        await msg.answer("Please, use this template:\n(e.g. 250сс/2 cylinder/36 Horse power)")
+    else:
+        async with state.proxy() as data:
+            data["power"] = msg.text
+        await msg.answer("Input bike description\n(e.g. Very comfortable Motorcycle for every day riding. "
+                         "Straight handlebar and standard (upright) riding position. "
+                         "New Design. Headlamp with mono lens illuminates road perfectly.):")
+        await BikeDescription.next()
+
+
+async def change_bike_description_other(msg: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data["description"] = msg.text
+        await msg.answer("Input any other comment\n(e.g. We speak eng,indo,rus):")
+        await BikeDescription.next()
+
+
+def format_number(n):
+    if n >= 1000000000:
+        return str(round(n / 1000000000, 1)) + ' billion'
+    elif n >= 1000000:
+        return str(round(n / 1000000, 1)) + ' million'
+    elif n >= 1000:
+        return str(n // 1000) + ' thousands'
+    else:
+        return str(n)
+
+
+async def change_bike_description_confirm(msg: types.Message, state: FSMContext):
+    await msg.answer("Preparing you description...\nPress YES, if you want to save it, "
+                     "press NO, if you want to cancel operation")
+    async with state.proxy() as data:
+        data['other'] = msg.text
+        bike_info = await get_more_bike_info(int(data.get('bike_id')))
+        photo_io = io.BytesIO(bike_info[14])
+        price_3 = format_number(await sheets.coefficient_math(int(data.get('bike_id')), 3))
+        price_7 = format_number(await sheets.coefficient_math(int(data.get('bike_id')), 7))
+        price_30 = format_number(await sheets.coefficient_math(int(data.get('bike_id')), 30))
+        description_text = f"{bike_info[1]} {bike_info[2]} ({bike_info[3]})\n\n{data.get('title')}\n\n" \
+                           f"{data.get('power').split('/')[0]}\n{data.get('power').split('/')[1]}\n" \
+                           f"{data.get('power').split('/')[2]}\n\n{data.get('description')}\n\nPrices:\n\n" \
+                           f"3 days: {price_3}\n7 days: {price_7}\n30 days: {price_30}\n\n{data.get('other')}"
+        data['description'] = description_text
+        await msg.answer_photo(photo=photo_io, caption=description_text, reply_markup=inline.kb_yesno())
+        await BikeDescription.next()
+
+
+async def change_bike_description_finish(call: types.CallbackQuery, state: FSMContext):
+    if call.data == 'yes':
+        async with state.proxy() as data:
+            await new_description(int(data.get('bike_id')), data.get('description'))
+            await call.message.delete()
+            await call.message.answer("Description successfully saved!", reply_markup=inline.kb_main_menu())
+            await state.finish()
+    else:
+        await call.message.delete()
+        await call.message.answer("You canceled operation!", reply_markup=inline.kb_main_menu())
+        await state.finish()
+
+
 def register(dp: Dispatcher):
     dp.register_callback_query_handler(back_button, text='back_main')
     dp.register_callback_query_handler(bike_settings, text="bike_settings")
@@ -353,3 +477,10 @@ def register(dp: Dispatcher):
     dp.register_callback_query_handler(update_bike_step3, state=UpdateBike.bike_id)
     dp.register_message_handler(update_bike_step4_msg, state=UpdateBike.parameter, content_types=['text', 'photo'])
     dp.register_callback_query_handler(update_bike_step4_call, state=UpdateBike.parameter)
+    dp.register_callback_query_handler(change_bike_description, text='change_bike_description')
+    dp.register_callback_query_handler(change_bike_description_title, state=BikeDescription.bike_id)
+    dp.register_message_handler(change_bike_description_power, state=BikeDescription.title)
+    dp.register_message_handler(change_bike_description_main, state=BikeDescription.power)
+    dp.register_message_handler(change_bike_description_other, state=BikeDescription.description)
+    dp.register_message_handler(change_bike_description_confirm, state=BikeDescription.other)
+    dp.register_callback_query_handler(change_bike_description_finish, state=BikeDescription.confirm)

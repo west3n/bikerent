@@ -6,6 +6,7 @@ import decouple
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
+from aiogram.utils.exceptions import BadRequest
 
 from database import db_admins, postgresql
 from keyboards import inline
@@ -42,17 +43,33 @@ class CancelBooking(StatesGroup):
 
 
 async def back_button(call: types.CallbackQuery, state: FSMContext):
-    await state.finish()
-    name = call.from_user.first_name
-    tg_id = call.from_user.id
-    user_status = await db_admins.check_status(tg_id)
-    if user_status:
-        if user_status[0] == "superuser":
-            await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
-        elif user_status[0] == "manager":
-            await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
-        elif user_status[0] == "deliveryman":
-            await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+    try:
+        await state.finish()
+        name = call.from_user.first_name
+        tg_id = call.from_user.id
+        user_status = await db_admins.check_status(tg_id)
+        if user_status:
+            if user_status[0] == "superuser":
+                await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "manager":
+                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
+            elif user_status[0] == "deliveryman":
+                await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+    except BadRequest:
+        await state.finish()
+        name = call.from_user.first_name
+        tg_id = call.from_user.id
+        user_status = await db_admins.check_status(tg_id)
+        if user_status:
+            if user_status[0] == "superuser":
+                await call.message.delete()
+                await call.message.answer(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "manager":
+                await call.message.delete()
+                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_manager())
+            elif user_status[0] == "deliveryman":
+                await call.message.delete()
+                await call.message.answer(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
 
 
 async def new_booking_start(call: types.CallbackQuery):

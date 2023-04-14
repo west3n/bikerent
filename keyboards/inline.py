@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
-from database.db_bike import get_bike_info, get_more_bike_info, get_bike, get_bike_booking_status
+from database.db_bike import get_bike_info, get_more_bike_info, get_bike, get_bike_booking_status, get_all_bikes_description
 from database.db_booking import check_booking
 from database.db_rent import all_rent
 from database.db_service import get_all_service
@@ -87,6 +87,7 @@ def kb_bike_settings() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Add new bike', callback_data='add_new_bike')],
         [InlineKeyboardButton('Change bike data', callback_data='change_bike_data')],
+        [InlineKeyboardButton('Change bike description', callback_data='change_bike_description')],
         [InlineKeyboardButton('Delete bike', callback_data='delete_bike')],
         [InlineKeyboardButton('Back to main menu', callback_data='back_main')]
     ])
@@ -329,6 +330,7 @@ def kb_information() -> InlineKeyboardMarkup:
         [InlineKeyboardButton('Check bike price', callback_data='check_bike_price')],
         [InlineKeyboardButton('Check available bikes', callback_data='check_available_bikes')],
         [InlineKeyboardButton('Check rental status', callback_data='check_rental_status')],
+        [InlineKeyboardButton('Create new post', callback_data='create_new_post')],
         [InlineKeyboardButton('Back', callback_data='back_main')]
     ])
     return kb

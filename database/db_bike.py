@@ -1,3 +1,5 @@
+import asyncio
+
 from database.postgresql import cur, db
 
 
@@ -164,5 +166,35 @@ async def get_millage(bike_id):
 
 async def get_all_bikes():
     cur.execute("SELECT * FROM bike")
+    result = cur.fetchall()
+    return result
+
+
+async def create_description_table():
+    cur.execute("CREATE TABLE bike_description ("
+                "bike_id INTEGER,"
+                "description TEXT,"
+                "FOREIGN KEY (bike_id) REFERENCES bike(id) ON DELETE CASCADE)")
+    db.commit()
+
+
+async def get_bike_description(bike_id):
+    cur.execute("SELECT description FROM bike_description WHERE bike_id=%s", (bike_id, ))
+    result = cur.fetchone()
+    return result
+
+
+async def new_description(bike_id, description):
+    description_existing = await get_bike_description(bike_id)
+    if not description_existing:
+        cur.execute("INSERT INTO bike_description (bike_id, description) VALUES (%s, %s)", (bike_id, description,))
+        db.commit()
+    else:
+        cur.execute("UPDATE bike_description SET description = %s WHERE bike_id = %s", (description, bike_id,))
+        db.commit()
+
+
+async def get_all_bikes_description():
+    cur.execute("SELECT * FROM bike_description")
     result = cur.fetchall()
     return result
