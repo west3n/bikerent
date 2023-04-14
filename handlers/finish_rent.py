@@ -1,4 +1,7 @@
+import io
+
 import aiohttp
+import decouple
 from aiogram import Dispatcher, types, Bot
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
@@ -100,7 +103,6 @@ async def finish_rent_repair_comment(call: types.CallbackQuery, state: FSMContex
             bike_info = await db_bike.get_more_bike_info(int(bike_id[0]))
             rent_info = await db_rent.get_all_rent_info(int(bike_id[0]))
             client_name = await db_client.get_client_name(int(rent_info[2]))
-            print(data)
             await call.message.edit_text(f"Confirm rent finish:\n\n"
                                          f"Bike model: {bike_info[1]} {bike_info[2]}\n"
                                          f"Bike plate number: {bike_info[8]}\n"
@@ -126,10 +128,28 @@ async def finish_rent_confirm(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
         if msg.text:
             data["repair_comment"] = msg.text
+            bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
+            bike = await db_bike.get_bike(bike_id[0])
+            await db_service.db_create_new_task(bike_id=bike_id[0], task='Repair_task')
+            await msg.bot.send_message(chat_id=decouple.config('GROUP_ID'),
+                                       text=f"<b>New SERVICE TASK created:</b>\n\n"
+                                            f"Bike ID: {bike[0]} - {bike[1]}, {bike[2]}\n"
+                                            f"Task: Repair\n"
+                                            f"Comment delivery man: {data.get('repair_comment')}\n")
+
         elif msg.photo:
             file = await msg.bot.download_file_by_id(msg.photo[-1].file_id)
             photo_bytes = file.read()
             data["repair_comment"] = photo_bytes
+            bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
+            bike = await db_bike.get_bike(bike_id[0])
+            await db_service.db_create_new_task(bike_id=bike_id[0], task='Repair_task')
+            await msg.bot.send_photo(chat_id=decouple.config('GROUP_ID'),
+                                     photo=io.BytesIO(photo_bytes),
+                                     caption=f"<b>New SERVICE TASK created:</b>\n\n"
+                                             f"Bike ID: {bike[0]} - {bike[1]}, {bike[2]}\n"
+                                             f"Task: Repair\n")
+
         bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
         bike_info = await db_bike.get_more_bike_info(int(bike_id[0]))
         rent_info = await db_rent.get_all_rent_info(int(bike_id[0]))
@@ -146,11 +166,13 @@ async def finish_rent(call: types.CallbackQuery, state: FSMContext):
     if call.data == "yes":
         async with state.proxy() as data:
             bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
-            oil_service_data = await db_service.take_data_from_oil_service(int(data.get('bike_id')))
+
+            print(bike_id)
+            oil_service_data = await db_service.take_data_from_oil_service(bike_id[0])
             oil_need_change = oil_service_data[0]
             last_oil_change_millage = oil_service_data[1]
             new_mileage = int(data.get('mileage'))
-            await bike_service.check_oil_change(int(data.get('bike_id')), oil_need_change,
+            await bike_service.check_oil_change(bike_id[0], oil_need_change,
                                                 last_oil_change_millage, new_mileage)
             await db_bike.update_millage(int(data.get('mileage')), bike_id[0])
             await call.message.edit_text("You successfully finish rent!", reply_markup=inline.kb_main_menu())
@@ -159,7 +181,12 @@ async def finish_rent(call: types.CallbackQuery, state: FSMContext):
             client_id = int(rent_info[2])
             await client_bot(client_tg, data, client_id)
             await db_rent.finish_rent(int(data.get('rent_id')))
-            print(bike_id[0])
+            bike = await db_bike.get_bike(bike_id[0])
+            await db_service.db_create_new_task(bike_id=bike_id[0], task='Wash_task')
+            await call.bot.send_message(chat_id=decouple.config('GROUP_ID'),
+                                        text=f"<b>New SERVICE TASK created:</b>\n\n"
+                                             f"Bike ID: {bike[0]} - {bike[1]}, {bike[2]}\n"
+                                             f"Task: Wash\n")
 
             await db_bike.change_bike_status_to_booking(bike_id[0])
             await state.finish()

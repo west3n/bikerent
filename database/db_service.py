@@ -75,3 +75,8 @@ async def get_bike_id(service_id):
     cur.execute("SELECT bike_id FROM service WHERE id=%s", (service_id,))
     result = cur.fetchone()
     return result
+
+
+async def delete_service(service_id):
+    cur.execute("DELETE FROM service WHERE id=%s", (service_id,))
+    db.commit()

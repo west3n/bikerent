@@ -16,6 +16,7 @@ from database.db_delivery import add_new_delivery
 from database.db_client import update_after_delivery
 from database.db_bike import get_millage, update_millage
 from database.db_rent import add_new_rent
+from database.db_service import db_create_new_task
 
 
 class Delivery(StatesGroup):
@@ -425,16 +426,7 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
                 photo_group.append(InputMediaPhoto(io.BytesIO(photo_data)))
         media_group = await call.bot.send_media_group(chat_id=group_id,
                                                       media=photo_group)
-        if data.get('add_photo'):
-            add_photos = []
-            add_photo1 = io.BytesIO(data.get('add_photo'))
-            add_photos.append(InputMediaPhoto(add_photo1))
-            for i in range(2, 9):
-                photo_data = data.get(f'add_photo_{i}')
-                if photo_data:
-                    add_photos.append(InputMediaPhoto(io.BytesIO(photo_data)))
-            await call.bot.send_media_group(chat_id=group_id,
-                                            media=add_photos)
+
         await call.bot.send_message(chat_id=group_id,
                                     text=f'New delivery:\n\n'
                                          f'Bike ID: {data.get("bike_id")}\n'
@@ -443,6 +435,27 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
                                          f'Client Phone: {data.get("phone_number")}\n'
                                          f'Payment method: {data.get("payment_method")}',
                                     reply_to_message_id=media_group[0].message_id)
+
+        if data.get('add_photo'):
+            add_photos = []
+            add_photo1 = io.BytesIO(data.get('add_photo'))
+            add_photos.append(InputMediaPhoto(add_photo1))
+            for i in range(2, 9):
+                photo_data = data.get(f'add_photo_{i}')
+                if photo_data:
+                    add_photos.append(InputMediaPhoto(io.BytesIO(photo_data)))
+
+            await call.bot.send_media_group(chat_id=group_id,
+                                            media=add_photos)
+            bike = await db_bike.get_bike(int(data.get('bike_id')))
+            await db_create_new_task(bike[0], task='Repair_task')
+
+            await call.bot.send_message(chat_id=group_id,
+                                        reply_to_message_id=media_group[0].message_id,
+                                        text=f"<b>New SERVICE TASK created:</b>\n\n"
+                                             f"Bike ID: {bike[0]} - {bike[1]}, {bike[2]}\n"
+                                             f"Task: Repair")
+
         await state.finish()
 
 

@@ -413,3 +413,23 @@ def kb_task_list() -> InlineKeyboardMarkup:
     ])
     return kb
 
+
+def kb_choose_payment_method_for_client() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton('Choose payment method', callback_data='choose_method')]
+    ])
+    return kb
+
+
+async def kb_description_bike() -> InlineKeyboardMarkup:
+    bikes = await get_all_bikes_description()
+    bike_callback = CallbackData("description", "id")
+    kb = InlineKeyboardMarkup()
+    for bike in bikes:
+        bike_name = await get_more_bike_info(bike[0])
+        button = InlineKeyboardButton(text=f'model: {bike_name[2]}, plate NO: {bike_name[8]}',
+                                      callback_data=bike_callback.new(id=bike[0]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_description')
+    kb.add(back)
+    return kb

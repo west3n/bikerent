@@ -3,7 +3,7 @@ from io import BytesIO
 
 
 async def generate_qr(client_id):
-    text = f'https://t.me/uzbekistaninvest_bot?start={client_id}'
+    text = f'https://t.me/clienttest1234567890_bot?start={client_id}'
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
