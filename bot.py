@@ -15,6 +15,7 @@ async def main():
     bot = Bot(settings.bot_token, parse_mode="html")
     storage = MemoryStorage()
     dp = Dispatcher(bot, storage=storage)
+
     settings.register_handlers(dp)
     await settings.set_default_commands(dp)
     await dp.start_polling()
