@@ -1,27 +1,10 @@
+from database import db_bike
 from database.postgresql import cur, db
-
-
-def create_table():
-    cur.execute(f"CREATE TABLE service ("
-                f"id SERIAL PRIMARY KEY,"
-                f"bike_id INTEGER REFERENCES bike ON DELETE CASCADE,"
-                f"status TEXT,"
-                f"cost BIGINT)")
-    db.commit()
-
-
-async def create_oil_service_table():
-    cur.execute("CREATE TABLE oil_services ("
-                "id SERIAL PRIMARY KEY,"
-                "bike_id INTEGER REFERENCES bike (id) ON DELETE CASCADE,"
-                "oil_need_change BOOLEAN DEFAULT FALSE,"
-                "last_oil_change_mileage INTEGER DEFAULT 0)")
-    db.commit()
 
 
 async def insert_oil_service_table(bike_id):
     cur.execute(f"INSERT INTO oil_services (bike_id, last_oil_change_mileage) "
-                f"SELECT id, millage FROM bike WHERE id=%s", (bike_id, ))
+                f"SELECT id, millage FROM bike WHERE id=%s", (bike_id,))
     db.commit()
 
 
@@ -52,12 +35,16 @@ async def update_bike_service_status_exist(bike_id):
 async def update_bike_service_status(bike_id):
     exist = await update_bike_service_status_exist(bike_id)
     if not exist:
-        cur.execute("INSERT INTO service (bike_id, status)  VALUES (%s, %s)", (bike_id, 'oil change'))
+        cur.execute("INSERT INTO service (bike_id, status)  VALUES (%s, %s) RETURNING id", (bike_id, 'oil change'))
+        result = cur.fetchone()[0]
         db.commit()
+        return result
     else:
-        cur.execute("UPDATE service SET status = 'oil change' WHERE bike_id = %s",
+        cur.execute("UPDATE service SET status = 'oil change' WHERE bike_id = %s RETURNING id",
                     (bike_id,))
+        result = cur.fetchone()[0]
         db.commit()
+        return result
 
 
 async def get_all_service():
@@ -67,8 +54,10 @@ async def get_all_service():
 
 
 async def db_create_new_task(bike_id, task):
-    cur.execute("INSERT INTO service (bike_id, status)  VALUES (%s, %s)", (bike_id, task))
+    cur.execute("INSERT INTO service (bike_id, status)  VALUES (%s, %s) RETURNING id", (bike_id, task))
+    result = cur.fetchone()[0]
     db.commit()
+    return result
 
 
 async def get_bike_id(service_id):
@@ -80,3 +69,25 @@ async def get_bike_id(service_id):
 async def delete_service(service_id):
     cur.execute("DELETE FROM service WHERE id=%s", (service_id,))
     db.commit()
+
+
+async def send_service_notification():
+    query = """
+            SELECT *
+            FROM service
+        """
+    cur.execute(query)
+    results = cur.fetchall()
+    message = f"SERVICE TASKS NOT CLOSED:\n"
+    if results:
+        for result in results:
+            bike = await db_bike.get_bike(result[1])
+            message += f"\n- Service task #{result[0]}\n" \
+                       f"Bike #{bike[0]}: {bike[1]}, {bike[2]}\n" \
+                       f"Task: {result[2]}\n"
+
+    else:
+        message = 'Today very good day:\n' \
+                  'No service tasks!'
+
+    return message

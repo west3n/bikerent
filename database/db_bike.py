@@ -1,27 +1,4 @@
-import asyncio
-
 from database.postgresql import cur, db
-
-
-async def create_table():
-    cur.execute(f"CREATE TABLE IF NOT EXISTS bike ("
-                f"id SERIAL PRIMARY KEY,"
-                f"brand TEXT,"
-                f"model TEXT,"
-                f'year INT,'
-                f"purchase_price BIGINT,"
-                f"millage INT,"
-                f"abs_cbs BOOLEAN,"
-                f"keyless BOOLEAN,"
-                f"plate_no VARCHAR(15),"
-                f"color TEXT,"
-                f"gps BOOLEAN,"
-                f"style TEXT,"
-                f"docs BOOLEAN,"
-                f"exhaust TEXT,"
-                f"photo BYTEA,"
-                f"status TEXT)")
-    db.commit()
 
 
 async def create_new_bike(data):
@@ -168,14 +145,6 @@ async def get_all_bikes():
     cur.execute("SELECT * FROM bike")
     result = cur.fetchall()
     return result
-
-
-async def create_description_table():
-    cur.execute("CREATE TABLE bike_description ("
-                "bike_id INTEGER,"
-                "description TEXT,"
-                "FOREIGN KEY (bike_id) REFERENCES bike(id) ON DELETE CASCADE)")
-    db.commit()
 
 
 async def get_bike_description(bike_id):

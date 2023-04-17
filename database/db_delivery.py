@@ -2,33 +2,6 @@ from database.postgresql import db, cur
 from database.db_booking import get_client_id
 
 
-async def create_table():
-    cur.execute('''
-        CREATE TABLE delivery (
-            id SERIAL PRIMARY KEY,
-            bike INTEGER REFERENCES bike(id) ON DELETE CASCADE,
-            client INTEGER REFERENCES client(id) ON DELETE CASCADE,
-            booking INTEGER REFERENCES booking(id) ON DELETE SET NULL,
-            leftside_photo BYTEA,
-            frontside_photo BYTEA,
-            rightside_photo BYTEA,
-            backside_photo BYTEA,
-            passport_number_client TEXT,
-            client_with_passport_photo BYTEA,
-            payment_method TEXT,
-            add_photo BYTEA,
-            add_photo2 BYTEA,
-            add_photo3 BYTEA,
-            add_photo4 BYTEA,
-            add_photo5 BYTEA,
-            add_photo6 BYTEA,
-            add_photo7 BYTEA,
-            add_photo8 BYTEA
-        )
-    ''')
-    db.commit()
-
-
 async def add_new_delivery(data):
     bike = int(data.get('bike_id'))
     booking_id = int(data.get('booking_id'))

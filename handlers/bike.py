@@ -6,7 +6,8 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.utils.exceptions import BadRequest
 
 from keyboards import inline
-from database.db_bike import create_new_bike, delete_bike, get_photo, db_update_bike, get_more_bike_info, new_description
+from database.db_bike import create_new_bike, delete_bike, get_photo, db_update_bike, get_more_bike_info, \
+    new_description
 from database import db_service, db_admins
 from google_json import sheets
 
@@ -209,9 +210,11 @@ async def add_new_bike_step12(msg: types.Message, state: FSMContext):
 
 
 async def add_new_bike_finish(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_text("Addition in progress...")
     async with state.proxy() as data:
         data['status'] = call.data
     bike_id = await create_new_bike(data)
+    await sheets.new_bike_sheets(data, bike_id)
     await db_service.insert_oil_service_table(bike_id)
     await call.message.edit_text("New bike data successfully saved!\n\nDo you want to add another bike?",
                                  reply_markup=inline.kb_yesno())
@@ -247,9 +250,11 @@ async def delete_confirmation(call: types.CallbackQuery, state: FSMContext):
 
 async def delete_processing(call: types.CallbackQuery, state: FSMContext):
     if call.data == 'yes':
+        await call.message.edit_text("Deletion in progress...")
         async with state.proxy() as data:
             bike_id = data.get('pick').split(":")[1]
             await delete_bike(int(bike_id))
+            await sheets.delete_bike_sheets(bike_id)
             await call.message.edit_text(f"Bike {bike_id} successfully deleted.\n\nYou want to delete another one?",
                                          reply_markup=inline.kb_yesno())
             await DeleteBike.next()
@@ -335,6 +340,7 @@ async def update_bike_step4_msg(msg: types.Message, state: FSMContext):
         else:
             return
         await db_update_bike(bike_id=data.get('bike_id'), data=new_data)
+        await sheets.update_bike_sheets(data.get('bike_id'), new_data)
         await state.finish()
         await msg.answer('Bike updated. Select a bike to update:', reply_markup=await inline.kb_update_bike())
         await UpdateBike.pick.set()
@@ -355,6 +361,7 @@ async def update_bike_step4_call(call: types.CallbackQuery, state: FSMContext):
                 data["new_parameter"] = call.data
         new_data = {f"{data.get('parameter')}": f"{data.get('new_parameter')}"}
         await db_update_bike(bike_id=data.get('bike_id'), data=new_data)
+        await sheets.update_bike_sheets(data.get('bike_id'), new_data)
         await state.finish()
         await call.message.delete()
         await call.message.answer('Bike updated. Select a bike to update:', reply_markup=await inline.kb_update_bike())

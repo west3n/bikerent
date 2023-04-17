@@ -2,19 +2,6 @@ from database.postgresql import db, cur
 import datetime
 
 
-async def create_table():
-    cur.execute("""
-    CREATE TABLE client (
-        id SERIAL PRIMARY KEY,
-        name TEXT,
-        contact TEXT UNIQUE NOT NULL,
-        tg_id BIGINT,
-        photo_id BYTEA,
-        photo_license BYTEA
-    )""")
-    db.commit()
-
-
 async def add_client(data):
     name = data.get('client_name')
     contact = data.get('client_contact')

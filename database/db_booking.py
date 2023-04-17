@@ -2,29 +2,6 @@ from database.postgresql import db, cur
 from datetime import datetime, date
 
 
-async def create_table():
-    cur.execute("""
-        CREATE TABLE booking (
-            id SERIAL PRIMARY KEY,
-            bike INTEGER REFERENCES bike (id) ON DELETE CASCADE,
-            start_date DATE,
-            rental_period INTEGER,
-            discount INTEGER DEFAULT 0,
-            client INTEGER REFERENCES client (id) ON DELETE CASCADE,
-            address TEXT,
-            delivery_time TEXT,
-            delivery_price INTEGER DEFAULT 0,
-            price BIGINT,
-            comment TEXT
-        );
-    """)
-    cur.execute("""
-        ALTER TABLE booking
-        ALTER COLUMN delivery_time TYPE TIMESTAMP USING to_timestamp(delivery_time, 'DD.MM.YYYY HH24:MI');
-    """)
-    db.commit()
-
-
 async def add_booking(data):
     bike_id = int(data.get('bike'))
     date_str = data.get('start_day')
@@ -55,10 +32,13 @@ async def add_booking(data):
             (bike, start_date, rental_period, discount, client, address, delivery_time, delivery_price, price, comment)
             VALUES
             (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
         """, (
         bike_id, date_obj, rental_period, discount, client_id, address, formatted_datetime, delivery_price, price,
         comment))
+    result = cur.fetchone()[0]
     db.commit()
+    return result
 
 
 async def check_booking(bike_id):

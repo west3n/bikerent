@@ -8,6 +8,7 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from database import db_bike, db_rent, db_client, db_service
 from decouple import config
 
+from google_json import sheets
 from handlers import bike_service
 from keyboards import inline
 
@@ -130,7 +131,8 @@ async def finish_rent_confirm(msg: types.Message, state: FSMContext):
             data["repair_comment"] = msg.text
             bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
             bike = await db_bike.get_bike(bike_id[0])
-            await db_service.db_create_new_task(bike_id=bike_id[0], task='Repair_task')
+            service_id = await db_service.db_create_new_task(bike_id=bike_id[0], task='Repair_task')
+            await sheets.new_task_sheets(service_id, bike_id[0], "Repair_task")
             await msg.bot.send_message(chat_id=decouple.config('GROUP_ID'),
                                        text=f"<b>New SERVICE TASK created:</b>\n\n"
                                             f"Bike ID: {bike[0]} - {bike[1]}, {bike[2]}\n"
@@ -143,7 +145,8 @@ async def finish_rent_confirm(msg: types.Message, state: FSMContext):
             data["repair_comment"] = photo_bytes
             bike_id = await db_rent.get_bike_id(int(data.get("rent_id")))
             bike = await db_bike.get_bike(bike_id[0])
-            await db_service.db_create_new_task(bike_id=bike_id[0], task='Repair_task')
+            service_id = await db_service.db_create_new_task(bike_id=bike_id[0], task='Repair_task')
+            await sheets.new_task_sheets(service_id, bike_id[0], "Repair_task")
             await msg.bot.send_photo(chat_id=decouple.config('GROUP_ID'),
                                      photo=io.BytesIO(photo_bytes),
                                      caption=f"<b>New SERVICE TASK created:</b>\n\n"
@@ -182,7 +185,8 @@ async def finish_rent(call: types.CallbackQuery, state: FSMContext):
             await client_bot(client_tg, data, client_id)
             await db_rent.finish_rent(int(data.get('rent_id')))
             bike = await db_bike.get_bike(bike_id[0])
-            await db_service.db_create_new_task(bike_id=bike_id[0], task='Wash_task')
+            service_id = await db_service.db_create_new_task(bike_id=bike_id[0], task='Wash_task')
+            await sheets.new_task_sheets(service_id, bike_id[0], "Wash_task")
             await call.bot.send_message(chat_id=decouple.config('GROUP_ID'),
                                         text=f"<b>New SERVICE TASK created:</b>\n\n"
                                              f"Bike ID: {bike[0]} - {bike[1]}, {bike[2]}\n"

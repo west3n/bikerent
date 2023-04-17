@@ -1,14 +1,6 @@
 from database.postgresql import db, cur
 
 
-async def create_table():
-    cur.execute(f"CREATE TABLE IF NOT EXISTS admins ("
-                f"tg_id BIGINT UNIQUE NOT NULL,"
-                f"name VARCHAR(25) NOT NULL,"
-                f"status VARCHAR(15) NOT NULL)")
-    db.commit()
-
-
 async def check_status(tg_id):
     cur.execute("SELECT status FROM admins WHERE tg_id=%s", (tg_id,))
     result = cur.fetchone()

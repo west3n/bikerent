@@ -3,6 +3,8 @@ import decouple
 from aiogram import Dispatcher, types, Bot
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
+
+from google_json import sheets
 from keyboards import inline
 from database import db_service, db_admins, db_bike, db_rent, db_client
 
@@ -35,17 +37,20 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
 async def check_oil_change(bike_id, oil_need_change, last_oil_change_millage, new_mileage):
     if last_oil_change_millage < 1000 < new_mileage and not oil_need_change:
         await db_service.update_oil_need_change_data(bike_id)
-        await db_service.update_bike_service_status(bike_id)
+        service_id = await db_service.update_bike_service_status(bike_id)
+        await sheets.new_task_sheets(service_id, bike_id, "oil change")
     elif last_oil_change_millage > 1000 and new_mileage > 3000 and not oil_need_change:
         await db_service.update_oil_need_change_data(bike_id)
-        await db_service.update_bike_service_status(bike_id)
+        service_id = await db_service.update_bike_service_status(bike_id)
+        await sheets.new_task_sheets(service_id, bike_id, "oil change")
     else:
         oil_change_intervals = [i * 3000 for i in range(1, 20)]
         mileage_intervals = [i * 3000 for i in range(2, 21)]
         for i, interval in enumerate(oil_change_intervals):
             if last_oil_change_millage > interval and new_mileage > mileage_intervals[i] and not oil_need_change:
                 await db_service.update_oil_need_change_data(bike_id)
-                await db_service.update_bike_service_status(bike_id)
+                service_id = await db_service.update_bike_service_status(bike_id)
+                await sheets.new_task_sheets(service_id, bike_id, "oil change")
                 break
 
 
@@ -119,14 +124,13 @@ async def cost_service(msg: types.Message, state: FSMContext):
         if data.get('service') == 'oil change':
             bike_id = await db_service.get_bike_id(int(data.get('service_id')))
             bike = await db_bike.get_bike(bike_id)
-
             await msg.bot.send_message(chat_id=group_id,
                                        text=f"Task ID: {data.get('service_id')} was close!\n\n"
                                             f"Bike ID: {bike[0]} - {bike[1]}, {bike[2]}\n"
                                             f"Task: {data.get('service')}\n"
                                             f"Cost: {data.get('cost')}")
-
             await db_service.update_oil_need_change_data_false(bike_id)
+            await sheets.update_task_cost_sheets(int(data.get('service_id')), data.get('cost'))
             await db_service.delete_service(int(data.get('service_id')))
             await msg.answer(text='The task has been completed!',
                              reply_markup=inline.kb_main_menu())
@@ -134,12 +138,12 @@ async def cost_service(msg: types.Message, state: FSMContext):
         else:
             bike_id = await db_service.get_bike_id(int(data.get('service_id')))
             bike = await db_bike.get_bike(bike_id)
-
             await msg.bot.send_message(chat_id=group_id,
                                        text=f"Task ID: {data.get('service_id')} was close!\n\n"
                                             f"Bike ID: {bike[0]} - {bike[1]}, {bike[2]}\n"
                                             f"Task: {data.get('service').split('_')[0]}\n"
                                             f"Cost: {data.get('cost')}")
+            await sheets.update_task_cost_sheets(int(data.get('service_id')), data.get('cost'))
             await db_service.delete_service(int(data.get('service_id')))
             await msg.answer(text='The task has been completed!',
                              reply_markup=inline.kb_main_menu())
@@ -171,10 +175,12 @@ async def insert_new_task(call: types.CallbackQuery, state: FSMContext):
         await NewServiceTask.next()
     else:
         async with state.proxy() as data:
+            await call.message.edit_text("Create new task...")
             group_id = decouple.config("GROUP_ID")
             data['task'] = call.data.capitalize()
             bike_data = await db_bike.get_more_bike_info(int(data.get('bike_id')))
-            await db_service.db_create_new_task(int(data.get('bike_id')), data.get('task'))
+            service_id = await db_service.db_create_new_task(int(data.get('bike_id')), data.get('task'))
+            await sheets.new_task_sheets(service_id, int(data.get('bike_id')), data.get('task'))
             await call.bot.send_message(group_id, text=f"<b>New SERVICE TASK created:</b>\n\n"
                                                        f"Bike model: {bike_data[1]} {bike_data[2]}\n"
                                                        f"Plane No: {bike_data[8]}\n"
@@ -191,13 +197,17 @@ async def insert_other_task(msg: types.Message, state: FSMContext):
             await msg.delete()
             await msg.answer("15 symbols maximum! Try again!")
         else:
+            answer = await msg.answer("Create new task...")
+            message_id = answer.message_id
             bike_data = await db_bike.get_more_bike_info(int(data.get('bike_id')))
-            await db_service.db_create_new_task(int(data.get('bike_id')), data.get('task'))
+            service_id = await db_service.db_create_new_task(int(data.get('bike_id')), data.get('task'))
+            await sheets.new_task_sheets(service_id, int(data.get('bike_id')), data.get('task'))
             await msg.bot.send_message(group_id, text=f"New task created:\n\n"
                                                       f"Bike model: {bike_data[1]} {bike_data[2]}\n"
                                                       f"Plane No: {bike_data[8]}\n"
                                                       f"Task: {data.get('task')}")
-            await msg.answer("New task created!", reply_markup=inline.kb_main_menu())
+            await msg.bot.edit_message_text(chat_id=msg.chat.id, message_id=message_id, text="New task created!",
+                                            reply_markup=inline.kb_main_menu())
             await state.finish()
 
 

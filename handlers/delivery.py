@@ -9,6 +9,7 @@ from aiogram.utils.exceptions import BadRequest
 
 from database import db_admins, db_bike, db_service
 from database.db_booking import check_booking, get_client_id
+from google_json import sheets
 from keyboards import inline
 from handlers import bike_service
 from handlers.qr_generation import generate_qr
@@ -448,8 +449,8 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
             await call.bot.send_media_group(chat_id=group_id,
                                             media=add_photos)
             bike = await db_bike.get_bike(int(data.get('bike_id')))
-            await db_create_new_task(bike[0], task='Repair_task')
-
+            service_id = await db_create_new_task(bike[0], task='Repair_task')
+            await sheets.new_task_sheets(service_id, bike[0], "Repair_task")
             await call.bot.send_message(chat_id=group_id,
                                         reply_to_message_id=media_group[0].message_id,
                                         text=f"<b>New SERVICE TASK created:</b>\n\n"

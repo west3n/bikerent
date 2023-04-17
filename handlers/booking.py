@@ -412,7 +412,8 @@ async def new_booking_finish_with_comment(msg: types.Message, state: FSMContext)
 async def new_booking_send_to_group(call: types.CallbackQuery, state: FSMContext):
     if call.data == "yes":
         async with state.proxy() as data:
-            await add_booking(data)
+            booking_id = await add_booking(data)
+            await sheets.add_booking_sheets(booking_id, data)
             group_id = decouple.config("GROUP_ID")
             bike_status = await get_bike_status(bike_id=data.get('bike'))
             if bike_status[0] == 'free':

@@ -4,16 +4,6 @@ from database.postgresql import db, cur
 from database.db_booking import status_booking
 
 
-def create_table():
-    cur.execute(f"CREATE TABLE rent ("
-                f"id SERIAL PRIMARY KEY,"
-                f"bike integer REFERENCES bike (id) ON DELETE CASCADE,"
-                f"client integer REFERENCES client (id) ON DELETE CASCADE,"
-                f"date_start date,"
-                f"date_finish date)")
-    db.commit()
-
-
 async def add_new_rent(booking_id):
     info = await status_booking(booking_id)
     bike_id = info[1]
