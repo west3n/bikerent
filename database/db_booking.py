@@ -75,28 +75,3 @@ async def all_bookings():
     cur.execute("SELECT * FROM booking")
     result = cur.fetchall()
     return result
-
-
-async def send_daily_deliveries():
-    now = datetime.now()
-    query = """
-        SELECT *
-        FROM booking
-        WHERE start_date = %s
-    """
-    cur.execute(query, (now.date(),))
-    results = cur.fetchall()
-    message = f"DELIVERY TASK TODAY: ({now.date().strftime('%d.%m.%Y')}):\n"
-    if results:
-        for result in results:
-            bike = await db_bike.get_bike(result[1])
-            client_contact = await db_client.get_client_contact(result[5])
-            message += f"\n- Delivery #{result[0]}: {result[7]} (Delivery price: {result[8]} rupiah.)\n\n" \
-                       f"Rent price: {result[9]}\n" \
-                       f"Bike #{bike[0]}: {bike[1]}, {bike[2]}\n" \
-                       f"Address: {result[6]}\n" \
-                       f"Client contact: {client_contact[0]}"
-    else:
-        message += f"\nNo delivery today =("
-
-    return message

@@ -1,4 +1,3 @@
-from database import db_bike
 from database.postgresql import cur, db
 
 
@@ -47,8 +46,8 @@ async def update_bike_service_status(bike_id):
         return result
 
 
-async def get_all_service():
-    cur.execute("SELECT * FROM service")
+async def get_open_service():
+    cur.execute("SELECT * FROM service WHERE open=true")
     result = cur.fetchall()
     return result
 
@@ -71,23 +70,24 @@ async def delete_service(service_id):
     db.commit()
 
 
-async def send_service_notification():
-    query = """
-            SELECT *
-            FROM service
-        """
-    cur.execute(query)
-    results = cur.fetchall()
-    message = f"SERVICE TASKS NOT CLOSED:\n"
-    if results:
-        for result in results:
-            bike = await db_bike.get_bike(result[1])
-            message += f"\n- Service task #{result[0]}\n" \
-                       f"Bike #{bike[0]}: {bike[1]}, {bike[2]}\n" \
-                       f"Task: {result[2]}\n"
+async def get_client_damage_service():
+    cur.execute("SELECT * FROM service WHERE status='client damage'")
+    result = cur.fetchall()
+    return result
 
-    else:
-        message = 'Today very good day:\n' \
-                  'No service tasks!'
 
-    return message
+async def get_not_opened_service():
+    cur.execute("SELECT * FROM service WHERE open=false")
+    result = cur.fetchall()
+    return result
+
+
+async def update_open_task(start_date,service_id):
+    cur.execute("UPDATE service SET open=true, start_date=%s WHERE id=%s", (start_date,service_id,))
+    db.commit()
+
+
+async def get_service_for_bike(bike_id):
+    cur.execute("SELECT id, start_date, status FROM service WHERE open=true AND bike_id=%s",(bike_id,))
+    result = cur.fetchall()
+    return result

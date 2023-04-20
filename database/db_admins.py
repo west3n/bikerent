@@ -14,7 +14,7 @@ async def create_admin(data):
 
 
 async def all_admins():
-    cur.execute("""SELECT * FROM admins WHERE status IN (%s, %s)""", ("manager", "deliveryman"))
+    cur.execute("""SELECT * FROM admins WHERE status IN (%s, %s)""", ("supervisor", "manager"))
     result = cur.fetchall()
     return result
 

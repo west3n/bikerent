@@ -57,10 +57,10 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
         if user_status:
             if user_status[0] == "superuser":
                 await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "supervisor":
+                await call.message.edit_text(f"Hello, supervisor {name}!", reply_markup=inline.start_manager())
             elif user_status[0] == "manager":
-                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
-            elif user_status[0] == "deliveryman":
-                await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_deliveryman())
     except BadRequest:
         await state.finish()
         name = call.from_user.first_name
@@ -70,12 +70,12 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
             if user_status[0] == "superuser":
                 await call.message.delete()
                 await call.message.answer(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "supervisor":
+                await call.message.delete()
+                await call.message.answer(f"Hello, supervisor {name}!", reply_markup=inline.start_manager())
             elif user_status[0] == "manager":
                 await call.message.delete()
-                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_manager())
-            elif user_status[0] == "deliveryman":
-                await call.message.delete()
-                await call.message.answer(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_deliveryman())
 
 
 async def confirm_qr(call: types.CallbackQuery, state: FSMContext):
@@ -98,7 +98,7 @@ async def delivery_bike(call: types.CallbackQuery):
     if not bikes:
         await call.message.edit_text("There's no bookings to deliver!", reply_markup=inline.kb_main_menu())
     else:
-        await call.message.edit_text("Select bike:", reply_markup=await inline.kb_delivery_bike())
+        await call.message.edit_text("Select bike:", reply_markup=await inline.kb_all_bookings())
         await Delivery.bike_id.set()
 
 
@@ -118,7 +118,7 @@ async def delivery_booking(call: types.CallbackQuery, state: FSMContext):
 async def delivery_millage(call: types.CallbackQuery, state: FSMContext):
     if call.data == "back":
         await state.finish()
-        await call.message.edit_text("Select bike:", reply_markup=await inline.kb_delivery_bike())
+        await call.message.edit_text("Select bike:", reply_markup=await inline.kb_all_bookings())
         await Delivery.bike_id.set()
     else:
         async with state.proxy() as data:
@@ -410,12 +410,12 @@ async def delivery_saving_data(call: types.CallbackQuery, state: FSMContext):
             caption='Show this QR to client',
             reply_markup=inline.kb_confirm_qr())
         await update_millage(int(data.get('bike_millage')), int(data.get('bike_id')))
-        oil_service_data = await db_service.take_data_from_oil_service(int(data.get('bike_id')))
-        oil_need_change = oil_service_data[0]
-        last_oil_change_millage = oil_service_data[1]
-        new_mileage = int(data.get('bike_millage'))
-        await bike_service.check_oil_change(int(data.get('bike_id')), oil_need_change,
-                                            last_oil_change_millage, new_mileage)
+        # oil_service_data = await db_service.take_data_from_oil_service(int(data.get('bike_id')))
+        # oil_need_change = oil_service_data[0]
+        # last_oil_change_millage = oil_service_data[1]
+        # new_mileage = int(data.get('bike_millage'))
+        # await bike_service.check_oil_change(int(data.get('bike_id')), oil_need_change,
+        #                                     last_oil_change_millage, new_mileage)
         await add_new_rent(booking_id)
         group_id = decouple.config("GROUP_ID")
         photo_keys = ['leftside_photo', 'rightside_photo', 'frontside_photo', 'backside_photo', 'passport_photo',

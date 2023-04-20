@@ -52,10 +52,10 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
         if user_status:
             if user_status[0] == "superuser":
                 await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "supervisor":
+                await call.message.edit_text(f"Hello, supervisor {name}!", reply_markup=inline.start_manager())
             elif user_status[0] == "manager":
-                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
-            elif user_status[0] == "deliveryman":
-                await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_deliveryman())
     except BadRequest:
         await state.finish()
         name = call.from_user.first_name
@@ -65,12 +65,12 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
             if user_status[0] == "superuser":
                 await call.message.delete()
                 await call.message.answer(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "supervisor":
+                await call.message.delete()
+                await call.message.answer(f"Hello, supervisor {name}!", reply_markup=inline.start_manager())
             elif user_status[0] == "manager":
                 await call.message.delete()
-                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_manager())
-            elif user_status[0] == "deliveryman":
-                await call.message.delete()
-                await call.message.answer(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_deliveryman())
 
 
 async def new_booking_start(call: types.CallbackQuery):
@@ -457,6 +457,7 @@ async def new_booking_send_to_group(call: types.CallbackQuery, state: FSMContext
                 rent_period = data.get('rental_period')
             await call.bot.send_message(chat_id=group_id,
                                         text=f"Hello managers! Please make new delivery:\n\n"
+                                             f"Bike ID: {data.get('bike_id')}\n"
                                              f"Client: {data.get('client_name')}, {data.get('client_contact')}\n"
                                              f"Address: {data.get('address')}\n"
                                              f"Delivery date: {formatted_datetime}\n"
@@ -474,7 +475,7 @@ async def new_booking_send_to_group(call: types.CallbackQuery, state: FSMContext
 
 
 async def cancel_booking(call: types.CallbackQuery):
-    await call.message.edit_text("Select bike for cancellation:", reply_markup=await inline.kb_booking_bike())
+    await call.message.edit_text("Select bike for cancellation:", reply_markup=await inline.kb_all_bookings())
     await CancelBooking.bike.set()
 
 
@@ -495,7 +496,7 @@ async def cancel_booking_selection(call: types.CallbackQuery, state: FSMContext)
 async def cancel_booking_confirmation(call: types.CallbackQuery, state: FSMContext):
     if call.data == 'back':
         await state.finish()
-        await call.message.edit_text("Select bike for cancellation:", reply_markup=await inline.kb_booking_bike())
+        await call.message.edit_text("Select bike for cancellation:", reply_markup=await inline.kb_all_bookings())
         await CancelBooking.bike.set()
     else:
         async with state.proxy() as data:

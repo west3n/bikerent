@@ -62,10 +62,10 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
         if user_status:
             if user_status[0] == "superuser":
                 await call.message.edit_text(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "supervisor":
+                await call.message.edit_text(f"Hello, supervisor {name}!", reply_markup=inline.start_manager())
             elif user_status[0] == "manager":
-                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_manager())
-            elif user_status[0] == "deliveryman":
-                await call.message.edit_text(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+                await call.message.edit_text(f"Hello, manager {name}!", reply_markup=inline.start_deliveryman())
     except BadRequest:
         await state.finish()
         name = call.from_user.first_name
@@ -75,12 +75,12 @@ async def back_button(call: types.CallbackQuery, state: FSMContext):
             if user_status[0] == "superuser":
                 await call.message.delete()
                 await call.message.answer(f"Hello, superuser {name}!", reply_markup=inline.start_superuser())
+            elif user_status[0] == "supervisor":
+                await call.message.delete()
+                await call.message.answer(f"Hello, supervisor {name}!", reply_markup=inline.start_manager())
             elif user_status[0] == "manager":
                 await call.message.delete()
-                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_manager())
-            elif user_status[0] == "deliveryman":
-                await call.message.delete()
-                await call.message.answer(f"Hello, deliveryman {name}!", reply_markup=inline.start_deliveryman())
+                await call.message.answer(f"Hello, manager {name}!", reply_markup=inline.start_deliveryman())
 
 
 async def bike_settings(call: types.CallbackQuery):

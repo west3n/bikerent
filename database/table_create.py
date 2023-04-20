@@ -5,6 +5,8 @@ def create_table_service():
     cur.execute(f"CREATE TABLE service ("
                 f"id SERIAL PRIMARY KEY,"
                 f"bike_id INTEGER REFERENCES bike ON DELETE CASCADE,"
+                f"start_date DATE,"
+                f"open BOOLEAN DEFAULT FALSE,"
                 f"status TEXT,"
                 f"cost BIGINT)")
     db.commit()
@@ -137,4 +139,8 @@ def table_creation():
     create_table_rent()
     create_table_delivery()
     create_description_table()
-    create_table_admins()
+    create_table_service()
+    create_oil_service_table()
+
+
+table_creation()

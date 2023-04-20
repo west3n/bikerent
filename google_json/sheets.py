@@ -136,7 +136,8 @@ async def delete_bike_sheets(bike_id):
 
 
 async def add_booking_sheets(booking_id, data):
-    worksheet_name = 'bot_booking'
+    print(booking_id, data)
+    worksheet_name = 'bot_bookings'
     try:
         worksheet = sh.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:

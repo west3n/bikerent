@@ -2,10 +2,11 @@ from datetime import timedelta
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
-from database.db_bike import get_bike_info, get_more_bike_info, get_bike, get_bike_booking_status, get_all_bikes_description
-from database.db_booking import check_booking
+from database.db_bike import get_bike_info, get_more_bike_info, get_bike, get_bike_booking_status, \
+    get_all_bikes_description
+from database.db_booking import check_booking, all_bookings
 from database.db_rent import all_rent
-from database.db_service import get_all_service
+from database.db_service import get_open_service, get_client_damage_service, get_not_opened_service
 
 
 def start_superuser() -> InlineKeyboardMarkup:
@@ -57,8 +58,8 @@ def kb_account_settings() -> InlineKeyboardMarkup:
 
 def kb_admin_status() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton('Manager', callback_data='manager')],
-        [InlineKeyboardButton('Deliveryman', callback_data='deliveryman')]
+        [InlineKeyboardButton('Supervisor', callback_data='supervisor')],
+        [InlineKeyboardButton('Manager', callback_data='manager')]
     ])
     return kb
 
@@ -124,7 +125,7 @@ async def kb_delete_bike() -> InlineKeyboardMarkup:
     bike_callback = CallbackData("delete_bike", "id")
     kb = InlineKeyboardMarkup()
     for bike in bikes:
-        button = InlineKeyboardButton(text=f'model: {bike[1]}, plate NO: {bike[2]}',
+        button = InlineKeyboardButton(text=f'ID:{bike[0]}, Model: {bike[1]}, NO: {bike[2]}',
                                       callback_data=bike_callback.new(id=bike[0]))
         kb.add(button)
     back = InlineKeyboardButton(text='Back', callback_data='back')
@@ -137,7 +138,7 @@ async def kb_update_bike() -> InlineKeyboardMarkup:
     bike_callback = CallbackData("update_bike", "id")
     kb = InlineKeyboardMarkup()
     for bike in bikes:
-        button = InlineKeyboardButton(text=f'model: {bike[1]}, plate NO: {bike[2]}',
+        button = InlineKeyboardButton(text=f'ID:{bike[0]}, Model: {bike[1]}, NO: {bike[2]}',
                                       callback_data=bike_callback.new(id=bike[0]))
         kb.add(button)
     back = InlineKeyboardButton(text='Back', callback_data='back')
@@ -191,7 +192,7 @@ async def kb_booking_bike() -> InlineKeyboardMarkup:
     bike_callback = CallbackData("booking", "id")
     kb = InlineKeyboardMarkup()
     for bike in bikes:
-        button = InlineKeyboardButton(text=f'model: {bike[1]}, plate NO: {bike[2]}',
+        button = InlineKeyboardButton(text=f'ID:{bike[0]}, Model: {bike[1]}, NO: {bike[2]}',
                                       callback_data=bike_callback.new(id=bike[0]))
         kb.add(button)
     back = InlineKeyboardButton(text='Back', callback_data='back_main')
@@ -204,7 +205,7 @@ async def kb_delivery_bike() -> InlineKeyboardMarkup:
     bike_callback = CallbackData("booking", "id")
     kb = InlineKeyboardMarkup()
     for bike in bikes:
-        button = InlineKeyboardButton(text=f'model: {bike[1]}, plate NO: {bike[2]}',
+        button = InlineKeyboardButton(text=f'ID:{bike[0]}, Model: {bike[1]}, NO: {bike[2]}',
                                       callback_data=bike_callback.new(id=bike[0]))
         kb.add(button)
     back = InlineKeyboardButton(text='Back', callback_data='back_main')
@@ -318,6 +319,20 @@ async def kb_all_rent() -> InlineKeyboardMarkup:
     return kb
 
 
+async def kb_all_bookings() -> InlineKeyboardMarkup:
+    bookings = await all_bookings()
+    rent_callback = CallbackData("booking", "id")
+    kb = InlineKeyboardMarkup()
+    for booking in bookings:
+        bike = await get_bike(booking[1])
+        button = InlineKeyboardButton(text=f'Bike ID: {bike[0]}, Model: {bike[1]} ({bike[2]})',
+                                      callback_data=rent_callback.new(id=bike[0]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_main')
+    kb.add(back)
+    return kb
+
+
 def kb_confirm_qr() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Confirm', callback_data='confirm_qr')]
@@ -369,20 +384,51 @@ def booking_rent() -> InlineKeyboardMarkup:
 def kb_current_services() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton('Create new task', callback_data='create_new_task')],
-        [InlineKeyboardButton('Check service status', callback_data='check_service_status')],
+        [InlineKeyboardButton('Finish service task', callback_data='check_service_status')],
+        [InlineKeyboardButton('Get started with task', callback_data='get_started')],
+        [InlineKeyboardButton('Client damage', callback_data='task_client_damage')],
         [InlineKeyboardButton('Back', callback_data='back_main')]
     ])
     return kb
 
 
 async def kb_all_service() -> InlineKeyboardMarkup:
-    services = await get_all_service()
+    services = await get_open_service()
     services_callback = CallbackData("service_distrib", "id", "status")
     kb = InlineKeyboardMarkup()
     for service in services:
         bike = await get_bike(service[1])
-        button = InlineKeyboardButton(text=f"ID {service[0]} - Bike: {bike[2]}: {service[2].capitalize()}",
-                                      callback_data=services_callback.new(id=service[0], status=service[2]))
+        button = InlineKeyboardButton(text=f"ID {service[0]} - Bike: {bike[2]}: {service[4].split('_')[0].capitalize()}",
+                                      callback_data=services_callback.new(id=service[0], status=service[4]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_service')
+    kb.add(back)
+    return kb
+
+
+async def kb_all_damage_services() -> InlineKeyboardMarkup:
+    services = await get_client_damage_service()
+    services_callback = CallbackData("service_distrib", "id", "status")
+    kb = InlineKeyboardMarkup()
+    for service in services:
+        bike = await get_bike(service[1])
+        button = InlineKeyboardButton(text=f"ID {service[0]} - Bike: {bike[2]}: {service[4].capitalize()}",
+                                      callback_data=services_callback.new(id=service[0], status=service[4]))
+        kb.add(button)
+    back = InlineKeyboardButton(text='Back', callback_data='back_service')
+    kb.add(back)
+    return kb
+
+
+async def kb_all_not_open_services() -> InlineKeyboardMarkup:
+    services = await get_not_opened_service()
+    print(services)
+    services_callback = CallbackData("service_distrib", "id", "status")
+    kb = InlineKeyboardMarkup()
+    for service in services:
+        bike = await get_bike(service[1])
+        button = InlineKeyboardButton(text=f"ID {service[0]} - Bike: {bike[2]}: {service[4].capitalize()}",
+                                      callback_data=services_callback.new(id=service[0], status=service[4]))
         kb.add(button)
     back = InlineKeyboardButton(text='Back', callback_data='back_service')
     kb.add(back)
@@ -394,7 +440,7 @@ async def kb_service_bike() -> InlineKeyboardMarkup:
     bike_callback = CallbackData("service_bike", "id")
     kb = InlineKeyboardMarkup()
     for bike in bikes:
-        button = InlineKeyboardButton(text=f'model: {bike[1]}, plate NO: {bike[2]}',
+        button = InlineKeyboardButton(text=f'ID:{bike[0]}, Model: {bike[1]}, NO: {bike[2]}',
                                       callback_data=bike_callback.new(id=bike[0]))
         kb.add(button)
     back = InlineKeyboardButton(text='Back', callback_data='back_service')
@@ -426,8 +472,8 @@ async def kb_description_bike() -> InlineKeyboardMarkup:
     bike_callback = CallbackData("description", "id")
     kb = InlineKeyboardMarkup()
     for bike in bikes:
-        bike_name = await get_more_bike_info(bike[0])
-        button = InlineKeyboardButton(text=f'model: {bike_name[2]}, plate NO: {bike_name[8]}',
+        await get_more_bike_info(bike[0])
+        button = InlineKeyboardButton(text=f'ID:{bike[0]}, Model: {bike[1]}, NO: {bike[2]}',
                                       callback_data=bike_callback.new(id=bike[0]))
         kb.add(button)
     back = InlineKeyboardButton(text='Back', callback_data='back_description')
