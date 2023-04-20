@@ -16,6 +16,7 @@ from database.db_bike import get_bike_status, change_bike_status_to_booking, cha
 from google_json import sheets
 from database.db_booking import add_booking, check_booking, delete_booking
 from database.db_rent import get_all_rent
+from database.db_service import get_service_for_bike
 
 
 class Booking(StatesGroup):
@@ -82,6 +83,13 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['bike'] = call.data.split(":")[1]
     bike_status = await get_bike_status(bike_id=call.data.split(":")[1])
+    service_status = await get_service_for_bike(bike_id=int(call.data.split(":")[1]))
+    serv = f'<b>Service:</b>\n'
+    if service_status:
+        for service in service_status:
+            serv += f"Service ID: {service[0]} - from {service[1]}, task: {service[2]}\n"
+    else:
+        serv += f"No opened services!"
     if bike_status[0] == 'booking':
         bookings = await check_booking(bike_id=data.get('bike'))
         if bookings:
@@ -93,11 +101,13 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
 
             await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n'
                                          f'{x}\n'
+                                         f'{serv}\n'
                                          f'\nSelect start date:\n\nMonth:',
                                          reply_markup=inline.kb_month())
         else:
             await change_bike_status_to_free(bike_id=data.get('bike'))
             await call.message.edit_text(f'Bike status: Free\n'
+                                         f'{serv}\n'
                                          f'\nSelect start date:\n\nMonth:',
                                          reply_markup=inline.kb_month())
     elif bike_status[0] == 'rent':
@@ -118,6 +128,7 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
             await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n'
                                          f'{x}\n'
                                          f'{y}\n'
+                                         f'{serv}\n'
                                          f'\nSelect start date:\n\nMonth:',
                                          reply_markup=inline.kb_month())
         else:
@@ -129,6 +140,7 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
                     y += f"ID: {rent[0]} - Start: {start_date}, End: {end_date}"
                 await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n'
                                              f'{y}\n'
+                                             f'{serv}\n'
                                              f'\nSelect start date:\n\nMonth:',
                                              reply_markup=inline.kb_month())
             elif bookings:
@@ -140,15 +152,20 @@ async def new_booking_start_step1(call: types.CallbackQuery, state: FSMContext):
                 await change_bike_status_to_booking(data.get('bike'))
                 await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n'
                                              f'{x}\n'
+                                             f'{serv}\n'
                                              f'\nSelect start date:\n\nMonth:',
                                              reply_markup=inline.kb_month())
             else:
                 await change_bike_status_to_free(bike_id=data.get('bike'))
                 await call.message.edit_text(f'Bike status: Free\n'
+                                             f'{serv}\n'
                                              f'\nSelect start date:\n\nMonth:',
+
                                              reply_markup=inline.kb_month())
     else:
-        await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n\nSelect start date:\n\nMonth:',
+        await call.message.edit_text(f'Bike status: {bike_status[0].capitalize()}\n\n'
+                                     f'{serv}\n'
+                                     f'Select start date:\n\nMonth:',
                                      reply_markup=inline.kb_month())
 
     await Booking.next()
@@ -397,6 +414,7 @@ async def new_booking_finish_with_comment(msg: types.Message, state: FSMContext)
         time_obj = datetime.strptime(delivery_time, '%H:%M').time()
         datetime_obj = datetime.combine(date_obj, time_obj)
         formatted_datetime = datetime_obj.strftime('%d.%m.%Y %H:%M')
+        await msg.delete()
         await msg.answer(f"Check text and confirm:\n\n"
                          f"Client: {data.get('client_name')}, {data.get('client_contact')}\n"
                          f"Address: {data.get('address')}\n"
@@ -410,6 +428,7 @@ async def new_booking_finish_with_comment(msg: types.Message, state: FSMContext)
 
 
 async def new_booking_send_to_group(call: types.CallbackQuery, state: FSMContext):
+    await call.message.delete()
     if call.data == "yes":
         async with state.proxy() as data:
             booking_id = await add_booking(data)

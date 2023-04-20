@@ -130,12 +130,11 @@ def create_table_admins():
 
 
 def table_creation():
-    create_table_service()
-    create_oil_service_table()
+    create_table_bike()
+    create_table_client()
+    create_table_admins()
+    create_table_booking()
     create_table_rent()
     create_table_delivery()
-    create_table_client()
-    create_table_booking()
-    create_table_bike()
     create_description_table()
     create_table_admins()

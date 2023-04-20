@@ -20,6 +20,13 @@ class NewServiceTask(StatesGroup):
     task = State()
 
 
+class OpenTask(StatesGroup):
+    service_id = State()
+    service = State()
+    start_month = State()
+    start_day = State()
+
+
 async def back_button(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     name = call.from_user.first_name
@@ -118,10 +125,11 @@ async def cost_service(msg: types.Message, state: FSMContext):
             text = f"You must pay: {data.get('cost')} rupiah\n" \
                    f"Select a Payment Method:"
             await client_bot(tg_id, text)
+            await sheets.update_task_cost_sheets(int(data.get('service_id')), data.get('cost'))
             await msg.answer("Wait for the customer to select a payment method.",
                              reply_markup=inline.kb_main_menu())
             await state.finish()
-        if data.get('service') == 'oil change':
+        elif data.get('service') == 'oil change':
             bike_id = await db_service.get_bike_id(int(data.get('service_id')))
             bike = await db_bike.get_bike(bike_id)
             await msg.bot.send_message(chat_id=group_id,
